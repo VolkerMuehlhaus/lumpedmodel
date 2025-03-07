@@ -18,6 +18,6 @@ The code for all model extractions requires Python3 with the skitkit-rf library.
 ## Transmission line from S2P data
 [rlgc_from_s2p](./rlgc_from_s2p)
 
-[<img src="./doc/rlgc_segments.png" width="600" />](./doc/rlgc_segments.png)
+[<img src="./doc/rlgc_segments.png" width="500" />](./doc/rlgc_segments.png)
 
 
