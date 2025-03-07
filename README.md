@@ -3,8 +3,7 @@
 This is a collection of tools to convert S-parameters from RFIC EM simulation 
 into a lumped model that can be used in all sorts of circuit simulation. 
 
-# Prerequisites
-The code requires Python3 with the skitkit-rf library.
+The code for all model extractions requires Python3 with the skitkit-rf library.
 https://scikit-rf.readthedocs.io/en/latest/tutorials/index.html
 
 ## Inductor (two port, no center tap) from S2P data
