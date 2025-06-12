@@ -1,0 +1,22 @@
+Extract simple inductor pi model from S2P S-parameter file
+S2P frequency range is  0.0  to  30.0  GHz
+Extraction frequency:  10.0  GHz
+
+Differential inductor parameters
+Effective series L  [nH] : 1.976 @ 9.975 GHz
+Effective series R  [Ohm]: 5.531 @ 9.975 GHz
+Differential Q factor    : 22.39 @ 9.975 GHz
+----------------------
+L_DC      [nH] : 1.676
+R_DC      [Ohm]: 1.655
+Peak Q         : 22.51 @ 9.075 GHz
+
+
+Pi model extraction (narrowband) at 9.975 GHz
+Series L  [nH] : 1.872
+Series R  [Ohm]: 3.709
+Shunt C @ port 1 [fF] : 15.031
+Shunt R @ port 1 [Ohm]: 209.683
+Shunt C @ port 2 [fF] : 15.246
+Shunt R @ port 2 [Ohm]: 209.703
+
