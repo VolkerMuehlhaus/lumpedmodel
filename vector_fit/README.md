@@ -3,8 +3,6 @@
 This script reads n-port S-parameter data (*.snp) and calculates 
 a wide band circuit model fit, using scikit-rf vector fit functionality.
 
-![plot](./doc/vectorfit.png)
-
 Vector fit is done for each branch of the n-port data, using the circuit
 order specified by the user as a commandline parameter. If no value is
 specified, order = 3 will be used.
@@ -12,6 +10,8 @@ specified, order = 3 will be used.
 Not all input data is suitable, and you will need to test which order 
 gives a reasonable fit quality. The resulting circuit model uses controlled
 sources, so results might not even be physical, use with care!
+
+![plot](./doc/vectorfit.png)
 
 
 # Prerequisites
