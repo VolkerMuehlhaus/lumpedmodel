@@ -61,7 +61,7 @@ base_filename = os.path.splitext(args.snp)[0]
 extension = os.path.splitext(args.snp)[1]
 
 # write SPICE netlist
-netlist_filename = base_filename + '.net'
+netlist_filename = base_filename + '.sp'
 vf.write_spice_subcircuit_s(netlist_filename)
 
 
@@ -102,8 +102,5 @@ vf.plot_s_mag(0, 1, freqs1, ax=ax[0][1]) # plot s12
 vf.plot_s_mag(1, 1, freqs1, ax=ax[1][1]) # plot s22
 fig.tight_layout()
 plt.show()
-
-
-
 
 
