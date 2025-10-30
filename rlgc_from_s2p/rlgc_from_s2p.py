@@ -13,11 +13,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("s2p",  help="S2P input filename (Touchstone format)")
 parser.add_argument("f_ghz", help="extraction frequency in GHz", type=float)
 parser.add_argument("l_um", help="line length in micron", type=float)
+parser.add_argument("z0_ohm", help="port impedance in Ohms", type=float)
 args = parser.parse_args()
 
 
 # input data, must be 2-port S2P data
-sub = rf.Network(args.s2p)
+sub = rf.Network(args.s2p, z0=args.z0_ohm)
 
 # physical length must be supplied by user
 length = args.l_um*1e-6
@@ -25,9 +26,9 @@ length = args.l_um*1e-6
 # target frequency for pi model extraction
 f_target = args.f_ghz*1e9
 
-
 # frequency class, see https://github.com/scikit-rf/scikit-rf/blob/master/skrf/frequency.py
 freq = sub.frequency
+print('Port impedance in S2P is: ',args.z0_ohm, ' Ohm')
 print('S2P frequency range is ',freq.start/1e9, ' to ', freq.stop/1e9, ' GHz')
 print('Extraction frequency: ', args.f_ghz, ' GHz')
 print('Physical line length: ', args.l_um, ' micron')
