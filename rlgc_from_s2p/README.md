@@ -24,7 +24,7 @@ https://scikit-rf.readthedocs.io/en/latest/tutorials/index.html
 # Usage
 Ro run the RLGC model extraction, specify the *.s2p file as the first parameter, 
 followed by the extraction frequency in GHz, followed by physical length of the line
-in microns.
+in microns, followed by the S2P Port impedance.
 
 example:
 ```
