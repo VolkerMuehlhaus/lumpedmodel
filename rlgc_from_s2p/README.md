@@ -33,7 +33,7 @@ python rlgc_from_s2p.py line880um.s2p 20 880 50
 output: 
 ```
 Extract RLGC transmission line model from S2P S-parameter file
-'Port impedance in S2P is: 50 Ohm
+Port impedance in S2P is: 50 Ohm
 S2P frequency range is  0.0  to  110.0  GHz
 Extraction frequency:  20.0  GHz
 Physical line length:  880.0  micron
