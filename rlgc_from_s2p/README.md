@@ -28,11 +28,12 @@ in microns.
 
 example:
 ```
-python rlgc_from_s2p.py line880um.s2p 20 880
+python rlgc_from_s2p.py line880um.s2p 20 880 50
 ```
 output: 
 ```
 Extract RLGC transmission line model from S2P S-parameter file
+'Port impedance in S2P is: 50 Ohm
 S2P frequency range is  0.0  to  110.0  GHz
 Extraction frequency:  20.0  GHz
 Physical line length:  880.0  micron
@@ -49,7 +50,7 @@ Zline [Ohm]: 50.272
 
 
 # Accuracy
-Note that the extracted fixed values do not provide an  accurate wide band 
+Note that the extracted fixed values do not provide an accurate wide band 
 fit of the S2P data, they are exact only at the extraction frequency.
 Most often, L' and C' don't vary much, but the losses from skin effect 
 might result in frequency dependent R' values. 
