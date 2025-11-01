@@ -13,8 +13,10 @@ RLGC values per meter physical length are calculated.
 
 IMPORTANT: you need to specify the correct physical length as 
 a command line parameter, this is required for calculation!
-
-![plot](./doc/rlgc_extraction.png)
+ <!---  
+[//]: # (![plot](./doc/rlgc_extraction.png))  
+[//]: # (Photo was commented out, because it is inconsistent with the code below anymore)  
+ --->  
 
 
 # Prerequisites
