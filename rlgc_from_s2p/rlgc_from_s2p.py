@@ -32,7 +32,6 @@ length = args.l_um*1e-6
 # target frequency for pi model extraction
 f_target = args.f_ghz*1e9
 
-
 # frequency class, see https://github.com/scikit-rf/scikit-rf/blob/master/skrf/frequency.py
 freq = sub.frequency
 append_log('Extract RLGC transmission line model from S2P S-parameter file')
