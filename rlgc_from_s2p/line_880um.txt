@@ -1,0 +1,15 @@
+Extract RLGC transmission line model from S2P S-parameter file
+
+S2P frequency range is 0.0 to 110.0 GHz
+Extraction frequency 100.0  GHz
+Physical line length: 880.0 micron
+_________________________________________________
+RLGC line parameters
+Your input for physical line length: 8.800e-04 m
+Extraction frequency 100.100 GHz
+R   [Ohm/m]: 6.791e+03
+L'  [H/m]  : 3.108e-07
+G   [S/m]  : 1.665e-01
+C'  [H/m]  : 1.307e-10
+Zline [Ohm]: 48.762
+
