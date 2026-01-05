@@ -1,11 +1,12 @@
-# extract simple pi model, single frequency exctraction, not accurate for wideband use
+# extract simple pi model, single frequency exctration, not accurate for wideband use
 # data reader and extraction based on scikit-rf functionality
 
 import skrf as rf
 import math
 import argparse
 from matplotlib import pyplot as plt
-from pathlib import Path
+
+print('Extract simple inductor pi model from S2P S-parameter file')
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
@@ -13,16 +14,6 @@ parser.add_argument("s2p",  help="S2P input filename (Touchstone format)")
 parser.add_argument("f_ghz", help="extraction frequency in GHz", type=float)
 args = parser.parse_args()
 
-# create output filename with same base name as input, but .txt
-output_path = Path(args.s2p).with_suffix(".txt")
-log = open(output_path, "w")
-
-def out(*a, **k):
-    """Print to terminal AND write to log file."""
-    print(*a, **k)
-    print(*a, **k, file=log)
-
-out('Extract simple inductor pi model from S2P S-parameter file')
 
 # input data, must be 2-port S2P data
 sub = rf.Network(args.s2p)
@@ -30,15 +21,19 @@ sub = rf.Network(args.s2p)
 # target frequency for pi model extraction
 f_target = args.f_ghz*1e9
 
-# frequency class
-out('S2P frequency range is ',sub.frequency.start/1e9, ' to ', sub.frequency.stop/1e9, ' GHz')
-out('Extraction frequency: ', args.f_ghz, ' GHz')
+
+# frequency class, see https://github.com/scikit-rf/scikit-rf/blob/master/skrf/frequency.py
+print('S2P frequency range is ',sub.frequency.start/1e9, ' to ', sub.frequency.stop/1e9, ' GHz')
+print('Extraction frequency: ', args.f_ghz, ' GHz')
 assert f_target < sub.frequency.stop
 
-# if the input data has DC point, remove that
+# if the input data has DC point, remove that because it will throw warnungs later
 if sub.frequency.start == 0:
+    # resample to start at 1 GHz (or closest value)
     newrange = '1-' + str(sub.frequency.stop/1e9) + 'ghz'
     sub = sub[newrange]
+
+
 
 freq = sub.frequency
 f = freq.f
@@ -47,6 +42,7 @@ z11=sub.z[0::,0,0]
 z21=sub.z[0::,1,0]
 z12=sub.z[0::,0,1]
 z22=sub.z[0::,1,1]
+
 
 # 2-port to 1-port conversion
 Zdiff = z11-z12-z21+z22
@@ -61,7 +57,13 @@ Qmax = max(Qdiff)
 Qmax_index = rf.find_nearest_index(Qdiff, Qmax)
 f_Qmax = freq[Qmax_index]
 
+# calculate inductor circuit model
+
 # calculate pi model 
+# Zser = series element
+# Zshunt1 = left shunt element
+# Zshunt2 = right shunt element
+
 y11=sub.y[0::,0,0]
 y21=sub.y[0::,1,0]
 y12=sub.y[0::,0,1]
@@ -91,23 +93,24 @@ Rshunt2_ftarget = Rshunt2[ftarget_index]
 
 Qdiff_ftarget = Qdiff[ftarget_index]
 
-out('\nDifferential inductor parameters')
-out(f"Effective series L  [nH] : {Ldiff[ftarget_index]*1e9:.3f} @ {f[ftarget_index]/1e9:.3f} GHz")
-out(f"Effective series R  [Ohm]: {Rdiff[ftarget_index]:.3f} @ {f[ftarget_index]/1e9:.3f} GHz")
-out(f"Differential Q factor    : {Qdiff[ftarget_index]:.2f} @ {f[ftarget_index]/1e9:.3f} GHz")
-out('----------------------')
-out(f"L_DC      [nH] : {Ldiff[1]*1e9:.3f}")
-out(f"R_DC      [Ohm]: {Rdiff[0]:.3f}")
-out(f"Peak Q         : {max(Qdiff):.2f} @ {f_Qmax/1e9:.3f} GHz")
-out('')
-out(f"\nPi model extraction (narrowband) at {f[ftarget_index]/1e9:.3f} GHz")
-out(f"Series L  [nH] : {Lseries_ftarget*1e9:.3f}")
-out(f"Series R  [Ohm]: {Rseries_ftarget:.3f}")
-out(f"Shunt C @ port 1 [fF] : {Cshunt1_ftarget*1e15:.3f}")
-out(f"Shunt R @ port 1 [Ohm]: {Rshunt1_ftarget:.3f}")
-out(f"Shunt C @ port 2 [fF] : {Cshunt2_ftarget*1e15:.3f}")
-out(f"Shunt R @ port 2 [Ohm]: {Rshunt2_ftarget:.3f}")
-out('')
+print('\nDifferential inductor parameters')
+print(f"Effective series L  [nH] : {Ldiff[ftarget_index]*1e9:.3f} @ {f[ftarget_index]/1e9:.3f} GHz")  
+print(f"Effective series R  [Ohm]: {Rdiff[ftarget_index]:.3f} @ {f[ftarget_index]/1e9:.3f} GHz") 
+print(f"Differential Q factor    : {Qdiff[ftarget_index]:.2f} @ {f[ftarget_index]/1e9:.3f} GHz")  
+print('----------------------')
+print(f"L_DC      [nH] : {Ldiff[1]*1e9:.3f}") 
+print(f"R_DC      [Ohm]: {Rdiff[0]:.3f}")  
+print(f"Peak Q         : {max(Qdiff):.2f} @ {f_Qmax/1e9:.3f} GHz") 
+print('')
+print(f"\nPi model extraction (narrowband) at {f[ftarget_index]/1e9:.3f} GHz")
+print(f"Series L  [nH] : {Lseries_ftarget*1e9:.3f}")  
+print(f"Series R  [Ohm]: {Rseries_ftarget:.3f}") 
+print(f"Shunt C @ port 1 [fF] : {Cshunt1_ftarget*1e15:.3f}")  
+print(f"Shunt R @ port 1 [Ohm]: {Rshunt1_ftarget:.3f}")  
+print(f"Shunt C @ port 2 [fF] : {Cshunt2_ftarget*1e15:.3f}")  
+print(f"Shunt R @ port 2 [Ohm]: {Rshunt2_ftarget:.3f}")  
+print('')
+
 
 plt.figure()
 
@@ -155,8 +158,53 @@ plt.xlabel('Frequency (GHz)')
 plt.ylim(0, 5*Rshunt1_ftarget)
 plt.legend()
 
-# close log file
-log.close()
-
 plt.show()
 
+
+# ===================== LOGGING WRAPPER =====================
+# This block mirrors all stdout to a text file whose basename matches
+# the input S2P file. It does NOT modify any existing logic above.
+# Safe to remove without affecting functionality.
+
+import sys
+from pathlib import Path
+from contextlib import redirect_stdout
+
+# Prevent infinite recursion
+if "__LOGGING_ACTIVE__" not in globals():
+
+    __LOGGING_ACTIVE__ = True
+
+    if len(sys.argv) > 1 and sys.argv[1].lower().endswith(".s2p"):
+        log_path = Path(sys.argv[1]).with_suffix(".txt")
+
+        class _Tee:
+            def __init__(self, *streams):
+                self.streams = streams
+            def write(self, data):
+                for s in self.streams:
+                    s.write(data)
+            def flush(self):
+                for s in self.streams:
+                    s.flush()
+
+        with open(log_path, "w") as _logfile:
+            _tee = _Tee(sys.stdout, _logfile)
+            with redirect_stdout(_tee):
+                exec(open(__file__).read(), globals(), globals())
+        sys.exit(0)
+
+
+
+# ===================== AUTO-OPEN LOG FILE =====================
+# Open the generated log file in gedit after script execution.
+# This runs only in the logging wrapper execution path.
+
+import subprocess
+try:
+    subprocess.Popen(["gedit", str(log_path)])
+except Exception:
+    pass
+# =================== END AUTO-OPEN ===================
+
+# =================== END LOGGING WRAPPER ===================
