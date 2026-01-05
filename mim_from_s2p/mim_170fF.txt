@@ -1,0 +1,9 @@
+Extract MIM capacitor model from S2P S-parameter file
+S2P frequency range is 1.0 to 300.0 GHz
+Choosing  2.5 GHz for low frequency data
+_________________________________________________________
+Series C extracted at low frequency: 171.293 fF
+Series L extracted at 50.0 GHz: 6.939 pH
+Series R extracted at 50.0 GHz: 1.060 Ohm
+Shunt C distributed to both ports:  4.839 fF each side
+_________________________________________________________

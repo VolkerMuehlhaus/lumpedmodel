@@ -5,8 +5,14 @@ import skrf as rf
 import numpy as np
 import argparse
 from matplotlib import pyplot as plt
+import os
 
-print('Extract RLGC transmission line model from S2P S-parameter file')
+
+# create a log that we can dump to terminal and log file
+log = []
+def append_log (txt):
+    log.append(txt + '\n')
+
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
@@ -28,9 +34,10 @@ f_target = args.f_ghz*1e9
 
 # frequency class, see https://github.com/scikit-rf/scikit-rf/blob/master/skrf/frequency.py
 freq = sub.frequency
-print('S2P frequency range is ',freq.start/1e9, ' to ', freq.stop/1e9, ' GHz')
-print('Extraction frequency: ', args.f_ghz, ' GHz')
-print('Physical line length: ', args.l_um, ' micron')
+append_log('Extract RLGC transmission line model from S2P S-parameter file')
+append_log(f'S2P frequency range is {freq.start/1e9} to {freq.stop/1e9} GHz')
+append_log(f'Extraction frequency {args.f_ghz}  GHz')
+append_log(f'Physical line length: {args.l_um} micron')
 assert f_target < freq.stop
 
 # get index for exctraction
@@ -56,15 +63,25 @@ G = (gamma_ftarget/Zline_ftarget).real
 C = (gamma_ftarget/Zline_ftarget).imag / omega
 
 
-print('_________________________________________________')
-print('RLGC line parameters')
-print(f"Your input for physical line length: {length:.3e} m")
-print(f"Extraction frequency {f[ftarget_index]/1e9:.3f} GHz")
-print(f"R   [Ohm/m]: {R:.3e}") 
-print(f"L'  [H/m]  : {L:.3e}")  
-print(f"G   [S/m]  : {G:.3e}") 
-print(f"C'  [H/m]  : {C:.3e}")  
-print(f"Zline [Ohm]: {Zline_ftarget.real:.3f}")  
-print('')
+append_log('_________________________________________________')
+append_log('RLGC line parameters')
+append_log(f"Your input for physical line length: {length:.3e} m")
+append_log(f"Extraction frequency {f[ftarget_index]/1e9:.3f} GHz")
+append_log(f"R   [Ohm/m]: {R:.3e}") 
+append_log(f"L'  [H/m]  : {L:.3e}")  
+append_log(f"G   [S/m]  : {G:.3e}") 
+append_log(f"C'  [H/m]  : {C:.3e}")  
+append_log(f"Zline [Ohm]: {Zline_ftarget.real:.3f}")  
+append_log('')
 
-# Calculate total series L and total
+log_text = "".join(log)
+
+# print log to terminal
+print(log_text)
+
+# output log message to file also, same basename as *.s2p input file but file extension .txt
+log_filename = os.path.splitext(args.s2p)[0] + '.txt'
+with open(log_filename, "w", encoding="utf-8") as file:
+    file.write(log_text)
+
+

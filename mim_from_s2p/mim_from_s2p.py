@@ -5,8 +5,14 @@ import skrf as rf
 import math
 import argparse
 from matplotlib import pyplot as plt
+import os
 
-print('Extract MIM capacitor model from S2P S-parameter file')
+
+# create a log that we can dump to terminal and log file
+log = []
+def append_log (txt):
+    log.append(txt + '\n')
+
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
@@ -31,7 +37,8 @@ f_target = args.f_ghz*1e9
 
 # frequency class, see https://github.com/scikit-rf/scikit-rf/blob/master/skrf/frequency.py
 freq = sub.frequency
-print('S2P frequency range is ',freq.start/1e9, ' to ', freq.stop/1e9, ' GHz')
+append_log('Extract MIM capacitor model from S2P S-parameter file')
+append_log(f'S2P frequency range is {freq.start/1e9} to {freq.stop/1e9} GHz')
 assert f_target < freq.stop
 
 f = freq.f
@@ -64,19 +71,19 @@ Cser = 1/(-Zseries.imag*omega)
 Cser_target = Cser[ftarget_index]  # target frequency value
 Cser_low =  Cser[flow_index]       # low frequency value, where Lseries has very small effect on X
 
-print(f"Choosing  {f[flow_index]/1e9:.1f} GHz for low frequency data")  
-print('_________________________________________________________')
-print(f"Series C extracted at low frequency: {Cser_low*1e15:.3f} fF")  
-# print(f"Series C extracted at {f[ftarget_index]/1e9:.1f} GHz: : {Cser_target*1e15:.3f} fF")  
+append_log(f"Choosing  {f[flow_index]/1e9:.1f} GHz for low frequency data")  
+append_log('_________________________________________________________')
+append_log(f"Series C extracted at low frequency: {Cser_low*1e15:.3f} fF")  
+# append_log(f"Series C extracted at {f[ftarget_index]/1e9:.1f} GHz: : {Cser_target*1e15:.3f} fF")  
 
 # calculate series L
 Lser = (Zseries.imag + 1 / (omega*Cser_low))/omega
 Lser_target = Lser[ftarget_index]
-print(f"Series L extracted at {f[ftarget_index]/1e9:.1f} GHz: {Lser_target*1e12:.3f} pH")  
+append_log(f"Series L extracted at {f[ftarget_index]/1e9:.1f} GHz: {Lser_target*1e12:.3f} pH")  
 
 # calculate series R
 Rser_target = Zseries.real[ftarget_index]
-print(f"Series R extracted at {f[ftarget_index]/1e9:.1f} GHz: {Rser_target:.3f} Ohm")  
+append_log(f"Series R extracted at {f[ftarget_index]/1e9:.1f} GHz: {Rser_target:.3f} Ohm")  
 
 
 # check  effective series impedance from calculated L and C
@@ -92,8 +99,20 @@ Cshunt2 = -1 / (omega*Zshunt2.imag)
 # because they are connected tightly by the large MIM value anyway
 Cshunt_target = (Cshunt1[ftarget_index] + Cshunt2[ftarget_index])/2
 
-print(f"Shunt C distributed to both ports:  {Cshunt_target*1e15:.3f} fF each side")  
-print('_________________________________________________________')
+append_log(f"Shunt C distributed to both ports:  {Cshunt_target*1e15:.3f} fF each side")  
+append_log('_________________________________________________________')
+
+
+log_text = "".join(log)
+
+# append_log log to terminal
+print(log_text)
+
+# output log message to file also, same basename as *.s2p input file but file extension .txt
+log_filename = os.path.splitext(args.s2p)[0] + '.txt'
+with open(log_filename, "w", encoding="utf-8") as file:
+    file.write(log_text)
+
 
 
 plt.figure()

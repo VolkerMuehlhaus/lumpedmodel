@@ -1,6 +1,6 @@
 Extract simple inductor pi model from S2P S-parameter file
-S2P frequency range is  0.0  to  30.0  GHz
-Extraction frequency:  10.0  GHz
+S2P frequency range is 0.0 to 30.0 GHz
+Extraction frequency: 10.0 GHz
 
 Differential inductor parameters
 Effective series L  [nH] : 1.976 @ 9.975 GHz

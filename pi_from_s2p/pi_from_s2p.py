@@ -5,8 +5,13 @@ import skrf as rf
 import math
 import argparse
 from matplotlib import pyplot as plt
+import os
 
-print('Extract simple inductor pi model from S2P S-parameter file')
+# create a log that we can dump to terminal and log file
+log = []
+def append_log (txt):
+    log.append(txt + '\n')
+
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
@@ -23,8 +28,9 @@ f_target = args.f_ghz*1e9
 
 
 # frequency class, see https://github.com/scikit-rf/scikit-rf/blob/master/skrf/frequency.py
-print('S2P frequency range is ',sub.frequency.start/1e9, ' to ', sub.frequency.stop/1e9, ' GHz')
-print('Extraction frequency: ', args.f_ghz, ' GHz')
+append_log('Extract simple inductor pi model from S2P S-parameter file')
+append_log(f'S2P frequency range is {sub.frequency.start/1e9} to {sub.frequency.stop/1e9} GHz')
+append_log(f'Extraction frequency: {args.f_ghz} GHz')
 assert f_target < sub.frequency.stop
 
 # if the input data has DC point, remove that because it will throw warnungs later
@@ -93,23 +99,33 @@ Rshunt2_ftarget = Rshunt2[ftarget_index]
 
 Qdiff_ftarget = Qdiff[ftarget_index]
 
-print('\nDifferential inductor parameters')
-print(f"Effective series L  [nH] : {Ldiff[ftarget_index]*1e9:.3f} @ {f[ftarget_index]/1e9:.3f} GHz")  
-print(f"Effective series R  [Ohm]: {Rdiff[ftarget_index]:.3f} @ {f[ftarget_index]/1e9:.3f} GHz") 
-print(f"Differential Q factor    : {Qdiff[ftarget_index]:.2f} @ {f[ftarget_index]/1e9:.3f} GHz")  
-print('----------------------')
-print(f"L_DC      [nH] : {Ldiff[1]*1e9:.3f}") 
-print(f"R_DC      [Ohm]: {Rdiff[0]:.3f}")  
-print(f"Peak Q         : {max(Qdiff):.2f} @ {f_Qmax/1e9:.3f} GHz") 
-print('')
-print(f"\nPi model extraction (narrowband) at {f[ftarget_index]/1e9:.3f} GHz")
-print(f"Series L  [nH] : {Lseries_ftarget*1e9:.3f}")  
-print(f"Series R  [Ohm]: {Rseries_ftarget:.3f}") 
-print(f"Shunt C @ port 1 [fF] : {Cshunt1_ftarget*1e15:.3f}")  
-print(f"Shunt R @ port 1 [Ohm]: {Rshunt1_ftarget:.3f}")  
-print(f"Shunt C @ port 2 [fF] : {Cshunt2_ftarget*1e15:.3f}")  
-print(f"Shunt R @ port 2 [Ohm]: {Rshunt2_ftarget:.3f}")  
-print('')
+append_log('\nDifferential inductor parameters')
+append_log(f"Effective series L  [nH] : {Ldiff[ftarget_index]*1e9:.3f} @ {f[ftarget_index]/1e9:.3f} GHz")  
+append_log(f"Effective series R  [Ohm]: {Rdiff[ftarget_index]:.3f} @ {f[ftarget_index]/1e9:.3f} GHz") 
+append_log(f"Differential Q factor    : {Qdiff[ftarget_index]:.2f} @ {f[ftarget_index]/1e9:.3f} GHz")  
+append_log('----------------------')
+append_log(f"L_DC      [nH] : {Ldiff[1]*1e9:.3f}") 
+append_log(f"R_DC      [Ohm]: {Rdiff[0]:.3f}")  
+append_log(f"Peak Q         : {max(Qdiff):.2f} @ {f_Qmax/1e9:.3f} GHz") 
+append_log('')
+append_log(f"\nPi model extraction (narrowband) at {f[ftarget_index]/1e9:.3f} GHz")
+append_log(f"Series L  [nH] : {Lseries_ftarget*1e9:.3f}")  
+append_log(f"Series R  [Ohm]: {Rseries_ftarget:.3f}") 
+append_log(f"Shunt C @ port 1 [fF] : {Cshunt1_ftarget*1e15:.3f}")  
+append_log(f"Shunt R @ port 1 [Ohm]: {Rshunt1_ftarget:.3f}")  
+append_log(f"Shunt C @ port 2 [fF] : {Cshunt2_ftarget*1e15:.3f}")  
+append_log(f"Shunt R @ port 2 [Ohm]: {Rshunt2_ftarget:.3f}")  
+append_log('')
+
+log_text = "".join(log)
+
+# append_log log to terminal
+print(log_text)
+
+# output log message to file also, same basename as *.s2p input file but file extension .txt
+log_filename = os.path.splitext(args.s2p)[0] + '.txt'
+with open(log_filename, "w", encoding="utf-8") as f:
+    f.write(log_text)
 
 
 plt.figure()
@@ -159,3 +175,4 @@ plt.ylim(0, 5*Rshunt1_ftarget)
 plt.legend()
 
 plt.show()
+
