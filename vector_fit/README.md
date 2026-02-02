@@ -6,7 +6,8 @@ a wide band circuit model fit, using scikit-rf vector fit functionality.
 Vector fit is done for each branch of the n-port data, with model fit order determined automatically. As an option, the user can also specify the model fit order on the command line. If no value is
 specified, the required fit order will be determined automatically.
 
-![plot](./doc/vectorfit.png)
+<img src="./doc/vectorfit.png" alt="vectorfit" width="700">
+
 
 
 # Prerequisites
@@ -42,4 +43,4 @@ an S-parameter output file with suffix ".predicted" is created, which
 correspondonds to the fitted model. This can be used to verify the fit 
 against input data.
 
-![plot](./doc/netlist_output.png)
+<img src="./doc/netlist_output.png" alt="netlist" width="500">
