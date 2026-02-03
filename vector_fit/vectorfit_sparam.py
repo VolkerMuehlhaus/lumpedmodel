@@ -7,13 +7,14 @@ from matplotlib import pyplot as plt
 import numpy as np
 
 print('Vector fitting from SnP S-parameter file')
-print('Command line parameters: SnP_filename [numpoles]\n')
+print('Command line parameters: SnP_filename [numpoles]')
+print('If numpoles parameter is not specified, it will be determined automatically!\n')
 
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
 parser.add_argument("snp",  help="SnP input filename (Touchstone format)")
-parser.add_argument("numpoles",  help="Number of real poles (default=3)", default=3, nargs='?', type=int)
+parser.add_argument("numpoles",  help="Number of real poles (default=automatic)", default=0, nargs='?', type=int)
 args = parser.parse_args()
 
 # evaluate optional parameters
@@ -24,19 +25,23 @@ nw = skrf.Network(args.snp)
 
 # frequency class, see https://github.com/scikit-rf/scikit-rf/blob/master/skrf/frequency.py
 freq = nw.frequency
-print('S-parameter frequency range is ',freq.start/1e9, ' to ', freq.stop/1e9, ' GHz')
-print('Number of real poles used for data fit:', numpoles, ' (use  command line parameter to specify, default value is 3)')
-
 f = freq.f
-
-
-# check if input data is passive
-nw_is_passive  = nw.is_passive()
-print('\nS-parameter data is passive = ', nw_is_passive)
 
 # vector fitting
 vf = skrf.VectorFitting(nw)
-vf.vector_fit(n_poles_real=numpoles, n_poles_cmplx=0)
+if numpoles > 0:
+  vf.vector_fit(n_poles_real=numpoles, n_poles_cmplx=0)
+  fitmode = 'defined by commandline parameter'
+else:  
+  vf.auto_fit()
+  fitmode = 'determined automatically'
+
+# check if input data is passive
+nw_is_passive  = nw.is_passive()
+
+print('S-parameter frequency range is ',freq.start/1e9, ' to ', freq.stop/1e9, ' GHz')
+print('Input S-parameter data is passive = ', nw_is_passive)
+print(f'Model order used for fit = {vf.get_model_order(vf.poles)} {fitmode}')
 
 # vf.plot_convergence()
 
@@ -50,6 +55,8 @@ print('\nFitted data is passive = ', fit_is_passive)
 
 # enforce passivity if required
 if not fit_is_passive: # False: # not fit_is_passive:
+  viol_bands = vf.passivity_test()
+  print(f'Initial passivity violation bands = \n{viol_bands}')
   print(' Enforcing passivity for fitted data...')
   vf.passivity_enforce()
   fit_is_passive = vf.is_passive()
@@ -63,7 +70,6 @@ extension = os.path.splitext(args.snp)[1]
 # write SPICE netlist
 netlist_filename = base_filename + '.sp'
 vf.write_spice_subcircuit_s(netlist_filename)
-
 
 
 # write S-parameter file of fitted network
