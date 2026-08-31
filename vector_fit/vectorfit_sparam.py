@@ -47,9 +47,9 @@ if numpoles > 0:
   fitmode = 'defined by commandline parameter'
 else:  
   if new_skrf_version:
-    vf.auto_fit() # enforce_dc=False was leading to strange results in test case, don't use here
+    vf.auto_fit(n_poles_init_real=3, n_poles_init_cmplx=0, n_poles_add=1) # enforce_dc=False was leading to strange results in test case, don't use here
   else:
-    vf.auto_fit()
+    vf.auto_fit(n_poles_init_real=3, n_poles_init_cmplx=0, n_poles_add=1)
 
   fitmode = 'determined automatically'
 
