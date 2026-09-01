@@ -43,4 +43,4 @@ an S-parameter output file with suffix ".predicted" is created, which
 correspondonds to the fitted model. This can be used to verify the fit 
 against input data.
 
-<img src="./doc/netlist_output.png" alt="netlist" width="500">
+<img src="./doc/netlist_output.png" alt="netlist" width="700">
