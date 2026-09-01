@@ -3,7 +3,7 @@
 pi_from_s2p reads S-parameter data (*.s2p) for an RFIC inductor 
 and calculates component values for a simple narrowband pi model and for a more wideband model. 
 
-![plot](./doc/inductor_model.png)
+<img src="./doc/inductor_model.png" width="700">
 
 
 # Theory of operation:
@@ -64,9 +64,9 @@ spike where `Ldiff` swings from strongly inductive to strongly
 capacitive), and a plot of the extracted series and shunt path values
 with a visual marker at the extraction frequency.
 
-![plot](./doc/sample_inductor_diff_plot.png)
+<img src="./doc/sample_inductor_diff_plot.png" width="700">
 
-![plot](./doc/sample_inductor_fit_plot.png)
+<img src="./doc/sample_inductor_fit_plot.png" width="700">
 
 The wideband fit curve is an alternative model fit, described below.
 
@@ -79,7 +79,7 @@ band: the plain `Rseries`/`Lseries` arm gains a skin-effect section
 (`Rskin` in parallel with `Lskin`) in series with it, and a capacitor
 `Csrf` in parallel with the whole thing to capture self resonance:
 
-![plot](./doc/inductor_model_wideband.png)
+<img src="./doc/inductor_model_wideband.png" width="700">
 
 `Zskin` behaves like a short at DC (so the branch looks like plain `Rseries`+`Lseries` at low
 frequency) and like a resistor `Rskin` at high frequency (so the branch's
@@ -156,17 +156,17 @@ which supports noise simulation with S-parameter files.
 
 example2, 1nH extracted at 5 GHz:
 
-![plot](./doc/example2_model_compare.png)
+<img src="./doc/example2_model_compare.png" width="700">
 
 The comparison of S2P and pi model is show below. Values agree exactly 
 for noise figure at 50 Ohm load, minimum noise figure and S11, S21 at 
 the 5 GHz extraction frequency.
 
-![plot](./doc/example2_noise_extracted5G.png)
+<img src="./doc/example2_noise_extracted5G.png" width="700">
 
 L1n0, 1nH extracted at 20 GHz:
 
-![plot](./doc/L1n0_noise_extracted20G.png)
+<img src="./doc/L1n0_noise_extracted20G.png" width="700">
 
 Again, values agree for noise figure at 50 Ohm load, minimum noise 
 figure and S11, S21 at the 20 GHz extraction frequency.

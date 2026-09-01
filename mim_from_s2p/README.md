@@ -3,7 +3,7 @@
 This tool reads S-parameter data (*.s2p) for a MIM capacitor and
 calculates component values for a wideband model including SRF.
 
-![plot](./doc/model.png)
+<img src="./doc/model.png" width="700">
 
 The S-parameters at two frequencies are evaluated: the target RF frequency
 and a low frequency that allows to extract the series C value without 
@@ -25,7 +25,7 @@ the target frequency and the low frequency point. For comparison,
 the C curve for the fitted model is included in the plot.
 
 
-![plot](./doc/mim_plot.png)
+<img src="./doc/mim_plot.png" width="700">
 
 
 # Prerequisites
