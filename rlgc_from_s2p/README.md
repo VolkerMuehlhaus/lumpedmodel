@@ -4,7 +4,7 @@ This tool reads S-parameter data (*.s2p) for a single ended
 transmission line with 2 ports, and calculates component values 
 for a RLGC line model
 
-![plot](./doc/rlgc_segments.png)
+<img src="./doc/rlgc_segments.png" width="700">
 
 The S-parameters at one user defined frequency are extracted 
 and the corresponding series and shunt path elements are calculated.
