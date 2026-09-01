@@ -3,7 +3,7 @@
 pi_from_s2p reads S-parameter data (*.s2p) for an RFIC inductor 
 and calculates component values for a simple narrowband pi model and for a more wideband model. 
 
-<img src="./doc/inductor_model.png" width="700">
+<img src="./doc/inductor_model.png" width="500">
 
 
 # Theory of operation:
@@ -64,9 +64,9 @@ spike where `Ldiff` swings from strongly inductive to strongly
 capacitive), and a plot of the extracted series and shunt path values
 with a visual marker at the extraction frequency.
 
-<img src="./doc/sample_inductor_diff_plot.png" width="700">
+<img src="./doc/sample_inductor_diff_plot.png" width="500">
 
-<img src="./doc/sample_inductor_fit_plot.png" width="700">
+<img src="./doc/sample_inductor_fit_plot.png" width="500">
 
 The wideband fit curve is an alternative model fit, described below.
 
@@ -79,7 +79,7 @@ band: the plain `Rseries`/`Lseries` arm gains a skin-effect section
 (`Rskin` in parallel with `Lskin`) in series with it, and a capacitor
 `Csrf` in parallel with the whole thing to capture self resonance:
 
-<img src="./doc/inductor_model_wideband.png" width="700">
+<img src="./doc/inductor_model_wideband.png" width="500">
 
 `Zskin` behaves like a short at DC (so the branch looks like plain `Rseries`+`Lseries` at low
 frequency) and like a resistor `Rskin` at high frequency (so the branch's
