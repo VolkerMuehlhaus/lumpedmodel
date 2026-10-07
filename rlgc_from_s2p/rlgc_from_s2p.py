@@ -45,7 +45,7 @@ assert f_target < freq.stop
 
 # get index for exctraction
 f = freq.f
-ftarget_index = rf.find_nearest_index(freq.f, f_target)
+ftarget_index = rf.util.find_nearest_index(freq.f, f_target)
 omega = 2*np.pi*f[ftarget_index]
 
 z11=sub.z[0::,0,0]
