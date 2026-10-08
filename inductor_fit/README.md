@@ -175,9 +175,9 @@ Output files, written next to the input file:
 | `<name>_model.sp` | SPICE subcircuit `inductor_model p1 p2` (S3P: `ct_inductor_model p1 p2 ct`, with `K` coupling elements), with explicit elements per segment |
 | `<name>_model.s2p` / `.s3p` | model S-parameters on the frequency grid and in the port order of the input data, for comparison |
 
-Example, using the sample_inductor.s2p file included in this folder:
+Example, using the sample_inductor.s2p file included in the [examples](./examples) folder:
 ```
-python inductor_fit.py sample_inductor.s2p
+python inductor_fit.py examples/sample_inductor.s2p
 ```
 ```
 Fit cost for number of coil segments (symmetric substrate network): 1: 0.01419, 2: 0.01288, 3: 0.0129
@@ -223,7 +223,7 @@ fitting.
 
 ## Example: 74 pH mm-wave inductor
 
-[inductor_74p.s2p](./inductor_74p.s2p) is EM-simulated up to 350 GHz. With the basic model
+[inductor_74p.s2p](./examples/inductor_74p.s2p) is EM-simulated up to 350 GHz. With the basic model
 (1 segment, 1 skin section), the differential response cannot follow the data:
 
 <img src="./doc/inductor_74p_basic_fig1.png" width="700">
@@ -237,11 +237,11 @@ With automatic segmentation, the tool picks 3 segments. The model then follows L
 
 ## Example: center-tapped inductor (IHP SG13G2 inductor3)
 
-[final_inductor3_N2_do82.29_w4_s4.s3p](./final_inductor3_N2_do82.29_w4_s4.s3p) is an
+[final_inductor3_N2_do82.29_w4_s4.s3p](./examples/final_inductor3_N2_do82.29_w4_s4.s3p) is an
 inductor3 (2 turns, 82.29 µm outer diameter, 4 µm width and spacing), simulated with Palace up
 to 60 GHz. Port 3 is the center tap.
 ```
-python inductor_fit.py final_inductor3_N2_do82.29_w4_s4.s3p
+python inductor_fit.py examples/final_inductor3_N2_do82.29_w4_s4.s3p
 ```
 ```
 Number of coil segments per half coil: 2 (fewest segments with cost within 1.1 x best)

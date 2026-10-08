@@ -121,3 +121,4 @@ script and are checked into the repo as usage examples — treat existing sample
 when testing changes, and note that running any tool regenerates the `.txt` log and (for
 `vector_fit`) `.sp`/`_predicted` files, (for `inductor_fit`) `_model.sp`/`_model.s2p`/`.s3p` files
 next to the input.
+`inductor_fit` samples live in `inductor_fit/examples/` (inputs and generated outputs together).
