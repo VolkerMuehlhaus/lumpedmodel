@@ -1,0 +1,78 @@
+Wideband inductor model fit from S-parameter file
+Input file: D:\github-claude\lumpedmodel\inductor_fit\final_inductor3_N2_do82.29_w4_s4.s3p
+S3P frequency range is 0.01 to 60.0 GHz
+Center-tapped inductor: port 1 = p1, port 2 = p2, port 3 = center tap
+Fit band: 0.010 to 60.000 GHz (82 points)
+
+Fit cost for number of coil segments per half: 1: 0.01014, 2: 0.007296, 3: 0.00754
+Number of coil segments per half coil: 2 (fewest segments with cost within 1.1 x best)
+Symmetry from the data (RMS difference, threshold 5 %):
+  half coil inductance  :   0.63 % -> symmetric
+  half coil resistance  :   6.00 % -> asymmetric
+  substrate at p1/p2    :   5.91 % -> asymmetric
+
+Fitted model element values, totals over all segments (seed values in brackets)
+Half coil 1 (p1 to center tap)
+  Rs_h1    :       0.7197 Ohm   (0.6999 Ohm)
+  Ls_h1    :       0.1518 nH   (0.1655 nH)
+  Rskin1_h1:       0.7132 Ohm   (0.0956 Ohm)
+  Lskin1_h1:      0.01091 nH   (0.0143 nH)
+  Rskin2_h1:        6.102 Ohm   (1.143 Ohm)
+  Lskin2_h1:      0.01008 nH   (0.009825 nH)
+Half coil 2 (center tap to p2) (inductance same as half 1)
+  Rs_h2    :       0.9983 Ohm   (0.954 Ohm)
+  Ls_h2    :       0.1518 nH   (0.1655 nH)
+  Rskin1_h2:        1.084 Ohm   (0.1303 Ohm)
+  Lskin1_h2:      0.01091 nH   (0.0143 nH)
+  Rskin2_h2:         9.43 Ohm   (1.558 Ohm)
+  Lskin2_h2:      0.01008 nH   (0.009825 nH)
+Coupling, capacitance across coil, center tap lead
+  k        :       0.4116       (0.3552)
+  Cs       :        4.843 fF   (2.942 fF)
+  Rct      :      0.09565 Ohm   (0.09317 Ohm)
+Substrate network at p1
+  Cox1     :         6.48 fF   (8.443 fF)
+  Rsi1     :        526.7 Ohm   (1935 Ohm)
+  Csi1     :        55.78 fF   (21.56 fF)
+Substrate network at p2
+  Cox2     :        7.186 fF   (8.849 fF)
+  Rsi2     :        562.3 Ohm   (1701 Ohm)
+  Csi2     :        53.79 fF   (23.28 fF)
+Substrate network under the center tap
+  Coxct    :        19.05 fF   (13.45 fF)
+  Rsict    :         8349 Ohm   (2358 Ohm)
+  Csict    :        2.926 fF   (17.92 fF)
+NOTE: k is the effective coupling of the half coils including the center tap lead inductance (lead inductance and mutual inductance are not separable from terminal data)
+
+Derived values
+  Half coil inductance at DC (Ls + Lskin)     [nH] : 0.1728, 0.1728
+  Mutual inductance M = k*sqrt(Ls_h1*Ls_h2)   [nH] : 0.06249
+  Differential inductance at DC (L1+L2+2M)   [nH] : 0.4706
+  Differential resistance at DC (Rs1+Rs2)   [Ohm] : 1.718
+
+                                                                   data     model
+  SRF differential, center tap AC grounded [GHz]            :       n/a    89.028
+  SRF differential, center tap open [GHz]                   :       n/a    89.045
+  SRF common mode at center tap [GHz]                       :       n/a       n/a
+  SRF port 1 (p2, ct grounded) [GHz]                        :       n/a       n/a
+  SRF port 2 (p1, ct grounded) [GHz]                        :       n/a       n/a
+  Peak Q differential, center tap AC grounded               :     18.76     18.16   at 37.500 / 35.250 GHz
+  Peak Q differential, center tap open                      :     18.77     18.16   at 37.500 / 35.250 GHz
+  Peak Q common mode at center tap                          :     10.26     10.34   at 60.000 / 60.000 GHz
+  Peak Q port 1 (p2, ct grounded)                           :     11.05     11.12   at 51.750 / 46.500 GHz
+  Peak Q port 2 (p1, ct grounded)                           :     10.24     10.45   at 51.750 / 50.250 GHz
+  L differential, center tap AC grounded at 0.010 GHz [nH]  :    0.5029    0.4706
+  L differential, center tap open at 0.010 GHz [nH]         :    0.5029    0.4706
+  L common mode at center tap at 0.010 GHz [nH]             :    0.0729    0.0582
+  R common mode at center tap at 0.010 GHz [Ohm]            :    0.4966    0.5139
+
+Fit cost (weighted error function): 0.007296
+RMS relative error over fit band [%]: Y11 2.37, Y22 3.44, Y33 2.45, Y21 3.52, Y31 1.98, S21 1.95, S31 0.40
+RMS relative error below 0.8 x SRF [%]   : Ldd_gnd 4.09, Qdd_gnd 3.52, Lcm 3.81, Qcm 3.06
+
+NOTE: skin section 2_h1 corner frequency (96.3 GHz) is above the fit band - in band it acts as an additional series inductance Lskin2_h1
+NOTE: skin section 2_h2 corner frequency (149 GHz) is above the fit band - in band it acts as an additional series inductance Lskin2_h2
+WARNING: no self resonance found in the input data - model SRF is extrapolated
+
+SPICE netlist written to D:\github-claude\lumpedmodel\inductor_fit\final_inductor3_N2_do82.29_w4_s4_model.sp
+Model S-parameters written to D:\github-claude\lumpedmodel\inductor_fit\final_inductor3_N2_do82.29_w4_s4_model.s3p

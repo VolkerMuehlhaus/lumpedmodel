@@ -1,4 +1,4 @@
-Wideband inductor model fit from S2P S-parameter file
+Wideband inductor model fit from S-parameter file
 Input file: inductor_74p.s2p
 S2P frequency range is 0.01 to 350.0 GHz
 Fit band: 0.010 to 204.000 GHz (206 points)
@@ -35,7 +35,7 @@ Derived values
   Skin section 1 corner frequency        [GHz]: 3.712
   Skin section 2 corner frequency        [GHz]: 120.4
 
-                                  measured     model
+                                      data     model
   SRF port 1 (port 2 shorted) [GHz]:   170.658   171.053
   SRF port 2 (port 1 shorted) [GHz]:   170.605   171.053
   SRF differential            [GHz]:   332.852   331.856
