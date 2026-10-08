@@ -1,0 +1,57 @@
+Wideband inductor model fit from S2P S-parameter file
+Input file: sample_inductor.s2p
+S2P frequency range is 0.0 to 30.0 GHz
+Fit band: 0.075 to 24.975 GHz (333 points)
+
+Fit cost for number of coil segments (symmetric substrate network): 1: 0.01419, 2: 0.01288, 3: 0.0129
+Number of coil segments: 2 (fewest segments with cost within 1.1 x best)
+Port symmetry: shunt branches differ by 1.46 % RMS (symmetric), threshold 5 %
+Fit cost for substrate network variants:
+  symmetric           : 0.01288
+  symmetric+coupling  : 0.01287   not physical: coupling dominates port 1 substrate path, coupling dominates port 2 substrate path
+Substrate network: symmetric (simplest physical variant with cost within 1.1 x best)
+
+Fitted model element values, totals over all segments (seed values in brackets)
+Series branch
+  Rs     :        1.542 Ohm   (1.548 Ohm)
+  Ls     :        1.567 nH   (1.604 nH)
+  Rskin1 :       0.9297 Ohm   (1.672 Ohm)
+  Lskin1 :      0.04788 nH   (0.05504 nH)
+  Rskin2 :        10.57 Ohm   (0.1113 Ohm)
+  Lskin2 :      0.05192 nH   (0.01152 nH)
+  Cs     :        25.25 fF   (21.62 fF)
+Shunt branch port 1
+  Cox1   :         59.5 fF   (57.79 fF)
+  Rsi1   :         3533 Ohm   (3252 Ohm)
+  Csi1   :        18.32 fF   (19.12 fF)
+Shunt branch port 2 (symmetric: same as port 1)
+  Cox2   :         59.5 fF   (57.79 fF)
+  Rsi2   :         3533 Ohm   (3252 Ohm)
+  Csi2   :        18.32 fF   (19.12 fF)
+
+Derived values
+  L at DC (Ls + Lskin1 + Lskin2)          [nH] : 1.667
+  R at high frequency (Rs+Rskin1+Rskin2) [Ohm]: 13.04
+  Skin section 1 corner frequency        [GHz]: 3.09
+  Skin section 2 corner frequency        [GHz]: 32.4
+
+                                  measured     model
+  SRF port 1 (port 2 shorted) [GHz]:    20.910    20.888
+  SRF port 2 (port 1 shorted) [GHz]:    20.852    20.888
+  SRF differential            [GHz]:    23.239    23.442
+  Peak Q11                         :     18.57     18.49
+  Frequency of peak Q11       [GHz]:     6.900     7.125
+  Peak Q differential              :     22.51     22.41
+  Frequency of peak Q diff    [GHz]:     9.075     8.925
+  L11 at 0.075 GHz         [nH] :    1.6767    1.6666
+  R11 at 0.075 GHz        [Ohm] :    1.5573    1.5430
+
+Fit cost (weighted error function): 0.01288
+RMS relative error over fit band [%]: Y11 0.75, Y22 0.75, Y21 0.77, S21 0.76
+RMS relative error below 0.8 x SRF [%]   : L11 1.05, Q11 0.51, L22 0.65, Q22 1.04
+
+NOTE: skin section 2 corner frequency (32.4 GHz) is above the fit band - in band it acts as an additional series inductance Lskin2
+Data above 25.022 GHz was not used for fitting (beyond 1.2 x SRF)
+
+SPICE netlist written to sample_inductor_model.sp
+Model S-parameters written to sample_inductor_model.s2p
