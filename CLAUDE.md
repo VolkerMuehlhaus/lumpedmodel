@@ -11,13 +11,19 @@ or test suite. Everything runs via `python <script>.py <args>`.
 
 ## Prerequisites
 
-Python 3 with `scikit-rf` (`skrf`). `vector_fit/vectorfit_sparam.py` additionally needs
-`packaging` (for a scikit-rf version check) and uses `numpy` directly; the other scripts only
-need `skrf`, `matplotlib`, and stdlib. There is no `requirements.txt` — install manually:
+Python 3 with `scikit-rf` (`skrf`) and `matplotlib` (all tools), `numpy` (all except
+`mim_from_s2p`), `scipy` (`inductor_fit`, `pi_from_s2p`) and `packaging` (`vector_fit`, for a
+scikit-rf version check). `inductor_fit/doc/draw_model.py` also needs `schemdraw`. There is no
+`requirements.txt` — install manually:
 
 ```
-pip install scikit-rf matplotlib numpy packaging
+pip install scikit-rf numpy scipy matplotlib packaging
 ```
+
+The root `README.md` has the requirements table with the dependency licenses. The repo is GPL-3.0-or-later;
+all dependencies are permissive (BSD, MIT, Apache-2.0, Matplotlib/PSF-based) and only imported,
+not bundled. When adding a dependency, check its license for GPL-3.0 compatibility and add it to
+that table and to the tool's own README.
 
 ## Running the tools
 

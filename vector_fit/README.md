@@ -9,7 +9,7 @@ specified, the required fit order will be determined automatically.
 
 
 # Prerequisites
-The code requires Python3 with the skitkit-rf library.
+The code requires Python3 with the scikit-rf, numpy, matplotlib and packaging libraries, see [Requirements](../README.md#requirements).
 https://scikit-rf.readthedocs.io/en/latest/tutorials/index.html
 
 # Usage
