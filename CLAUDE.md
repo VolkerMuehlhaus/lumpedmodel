@@ -31,7 +31,7 @@ Each tool is invoked directly with argparse-style positional arguments; run with
 - `rlgc_from_s2p/rlgc_from_s2p.py <s2p> <f_ghz> <l_um> <z0_ohm>` — per-meter RLGC transmission
   line parameters from a 2-port line measurement; physical length and port impedance must be
   supplied explicitly.
-- `inductor_fit/inductor_fit.py <s2p|s3p> [--basic] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin/--fmax GHz] [--noplot]` —
+- `inductor_fit/inductor_fit.py <s2p|s3p> [--basic] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin/--fmax GHz] [--peak-q-weight [A]] [--shunt-accuracy [K]] [--spectre] [--noplot]` —
   fully automatic wideband RFIC inductor model with physical substrate network (series Rs/Ls +
   two Rskin||Lskin sections + Cs, per-port Cox-(Rsi||Csi), optional Rsub12||Csub12 coupling),
   global least-squares fit up to 1.2x SRF. Auto-selects 1-3 coil segments for distributed
@@ -74,7 +74,9 @@ notes, plot helpers) at the top; `run_two_port()` and `run_center_tap()` hold th
 specific flow, dispatched on the number of ports. Parameters are always totals;
 `shunt_weights()` distributes the substrate network over coil segments. The SPICE netlist
 writers must stay consistent with `y_model`/`y_model_ct` - verify by solving the written netlist
-(including `K` elements) independently and comparing against `_model.s2p`/`.s3p`. Refactoring
+(including `K` elements) independently and comparing against `_model.s2p`/`.s3p`. `--spectre`
+output (`.scs`) is not a separate writer: `spice_to_spectre()` translates the generated SPICE lines,
+so a new element type in the SPICE writers also needs a mapping there. Refactoring
 must keep 2-port results byte-identical (compare `.txt`/`.sp`/`.s2p` of the samples before/after).
 
 `vector_fit/vectorfit_sparam.py` is structurally different: it fits a rational-function model
@@ -113,6 +115,25 @@ calls.
   (unphysical). No substrate coupling
   element in the 3-port model (simplest physical choice). Verified with synthetic S3P data
   (exact recovery) and Palace EM data of an IHP SG13G2 inductor3 (2 turns).
+- `inductor_fit` low-frequency behaviour:
+  - Skin section corners are softly constrained to the fit band (`corner_penalty`, plus the
+    same clip on the series seed, because the global bounds are centered on the seeds).
+  - Without that constraint, FDTD data gave corners at 0.1-1 MHz. The model then had a DC
+    inductance of 330-985 nH instead of about 5 nH, and too low Rdc.
+  - Don't add an option that drops or zero-weights low-frequency data. The series branch there
+    is the only anchor for Rdc and L: tested with `--fmin` 1-2 GHz and weight ramps, Rdc
+    collapsed to 0.01-0.5 Ohm.
+  - The low-frequency weakness of measured and FDTD data is in the shunt branch (1e-4 to 1e-3 of
+    the series branch). `--shunt-accuracy` addresses it by flooring the shunt goal
+    normalization at K x |series|.
+  - A truncated FDTD run (openEMS energy limit -40 dB) gives a smooth, plausible-looking R offset
+    that no fit option can detect or fix.
+- `--peak-q-weight` is a trade-off, so it is opt-in with default A = 2. A = 5 doubled the 3-port
+  Y21 error on flat-Q data. Fit costs are only comparable between runs with the same weight
+  options (segment and substrate selection compare costs within one run, which stays valid).
+- `make_goals` weights can be scalars or per-point arrays. With the options off, the 2-port and
+  3-port results are byte-identical to the code before the options were added; only the corner
+  constraint changes results.
 
 ## Input/output data files
 

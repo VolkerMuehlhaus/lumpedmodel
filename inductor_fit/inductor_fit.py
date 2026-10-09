@@ -66,6 +66,18 @@ W_SHUNT_RE = 0.5 # real part of the shunt branches = substrate loss (relative er
 W_L = 0.5        # single-ended L11/L22 and differential L (relative error)
 W_Q = 0.5        # single-ended Q11/Q22 and differential Q (relative error)
 
+W_CORNER = 1.0   # penalty per decade of a skin section corner frequency below the fit band
+
+# Optional fit weighting (command line options):
+# --peak-q-weight: L and Q goals get the weight factor 1 + A*bump, where the bump rises smoothly
+#   from 0 at PEAK_Q_LEVEL x peak Q of the input data to 1 at the peak (maximum over all Q responses)
+# --shunt-accuracy: the normalization of the shunt branch goals is floored at K x |series branch|.
+#   At low frequency, the shunt (substrate) branch is tiny against the series branch, so a small
+#   absolute error of the input S-parameters (measurement noise, EM solver accuracy) swamps it.
+PEAK_Q_LEVEL = 0.8
+DEFAULT_PEAK_Q_WEIGHT = 2.0
+DEFAULT_SHUNT_ACCURACY = 0.01
+
 SRF_FIT_FACTOR = 1.2  # automatic fit band stops at this factor times the SRF of the input data
 LQ_SRF_FACTOR = 0.8   # L and Q goals are only used below this factor times SRF (L, Q diverge at SRF)
 NUM_RANDOM_STARTS = 2 # additional global fit runs from randomly perturbed seed values
@@ -313,17 +325,57 @@ def floored_norm(x):
     return np.maximum(mag, 0.1 * np.sqrt(np.mean(mag ** 2)))
 
 def complex_residual(model, meas, norm, weight):
+    # weight: scalar or per-point array
     diff = (model - meas) / norm
-    return weight * np.concatenate([diff.real, diff.imag]) / math.sqrt(len(meas))
+    return np.concatenate([weight * diff.real, weight * diff.imag]) / math.sqrt(len(meas))
 
 def real_residual(model, meas, norm, weight):
     return weight * (model - meas) / norm / math.sqrt(len(meas))
 
-def make_goals(meas_fit, goal_list):
+def make_goals(meas_fit, goal_list, norm_floor={}):
     # fit goals: (quantity, weight, mask into fit band, normalization); goals with too few points
-    # are skipped (SRF close to the lower end of the fit band)
-    return [(key, w, mask, floored_norm(meas_fit[key][mask])) for key, w, mask in goal_list
-            if np.count_nonzero(mask) >= 3]
+    # are skipped (SRF close to the lower end of the fit band). The weight is a scalar or a
+    # per-point array over the fit band. norm_floor: optional lower limit of the normalization
+    # per quantity (array over the fit band).
+    goals = []
+    for key, w, mask in goal_list:
+        if np.count_nonzero(mask) < 3:
+            continue
+        norm = floored_norm(meas_fit[key][mask])
+        if key in norm_floor:
+            norm = np.maximum(norm, norm_floor[key][mask])
+        goals.append((key, w if np.isscalar(w) else w[mask], mask, norm))
+    return goals
+
+def peak_q_weight(meas_fit, q_goals, n_fit):
+    # per-point weight over the fit band for the L and Q goals (--peak-q-weight), or None.
+    # q_goals: (Q quantity, mask of its valid range below SRF)
+    if args.peak_q_weight is None:
+        return None
+    bump = np.zeros(n_fit)
+    for key, mask in q_goals:
+        if np.count_nonzero(mask) < 3:
+            continue
+        q = meas_fit[key]
+        x = np.clip((q / np.max(q[mask]) - PEAK_Q_LEVEL) / (1 - PEAK_Q_LEVEL), 0, 1)
+        bump = np.maximum(bump, np.where(mask, x * x * (3 - 2 * x), 0))  # smoothstep
+    return 1 + args.peak_q_weight * bump
+
+def log_weighting(f_fit, wq):
+    if wq is not None:
+        band = f_fit[wq > 1]
+        append_log(f'Peak Q weighting: L and Q goals weighted up to {wq.max():.3g}x from {band[0]/1e9:.3f} to '
+                   f'{band[-1]/1e9:.3f} GHz (Q >= {PEAK_Q_LEVEL} x peak Q of the input data)')
+    if args.shunt_accuracy is not None:
+        append_log(f'Shunt branch accuracy: shunt branch errors relative to at least {args.shunt_accuracy:g} x |series branch|')
+
+def corner_penalty(names, x, f_low):
+    # soft constraint: skin section corner frequencies Rskin/(2*pi*Lskin) not below the fit band.
+    # Below the data, the corner is not determined by the data, and a corner far below the band makes
+    # the model DC resistance (Rs only) too low and the DC inductance (Ls + Lskin) far too high.
+    viol = [max(0.0, math.log10(2 * math.pi * f_low) - (x[i] - x[names.index('L' + name[1:])]))
+            for i, name in enumerate(names) if name.startswith('Rskin')]
+    return W_CORNER * np.array(viol)
 
 def goal_residuals(model, meas_fit, goals):
     # complex quantities fit real and imaginary part
@@ -426,8 +478,9 @@ def seed_series(Yser, omega, fit_mask, num_skin_sections):
     omega_fit = omega[fit_mask]
     f_fit = omega_fit / (2 * math.pi)
     Zser = 1.0 / Yser
-    Rs0 = max(Zser.real[0], 1e-3)
-    Ls0 = max(np.median(Zser.imag[:3] / omega[:3]), 1e-12)
+    i0 = int(np.argmax(fit_mask))  # first point of the fit band
+    Rs0 = max(Zser.real[i0], 1e-3)
+    Ls0 = max(np.median(Zser.imag[i0:i0 + 3] / omega[i0:i0 + 3]), 1e-12)
 
     def y_series_branch(p_series, omega):
         # Rs, Ls, Rskin1, Lskin1, Rskin2, Lskin2, Cs
@@ -471,6 +524,10 @@ def seed_series(Yser, omega, fit_mask, num_skin_sections):
             best = res
             x_series = x_template.copy()
             x_series[series_free] = res.x
+    # skin section corners not below the fit band, as in the global fit (corner_penalty); the global
+    # fit bounds are centered on the seed values
+    for i in (2, 4):
+        x_series[i + 1] = min(x_series[i + 1], x_series[i] - math.log10(2 * math.pi * f_fit[0]))
     return 10 ** x_series
 
 def seed_shunt(Ysh, omega, fit_mask):
@@ -484,7 +541,7 @@ def seed_shunt(Ysh, omega, fit_mask):
             real_residual(model.real, y_data.real, floored_norm(y_data.real), W_SHUNT_RE)])
 
     Cp = Ysh.imag / omega
-    Cp_valid = Cp[Cp > 0]
+    Cp_valid = Cp[fit_mask & (Cp > 0)]
     Cox = np.median(Cp_valid[:3])
     Cp_band = Cp[fit_mask & (Cp > 0)]
     Cinf = np.min(Cp_band) if len(Cp_band) else Cox
@@ -554,7 +611,7 @@ def log_skin_corner_notes(fit, sections, skin_negligible, f_fit):
         if section in skin_negligible:
             continue
         f_corner = fit['Rskin' + section] / (2 * math.pi * fit['Lskin' + section])
-        if f_corner < f_fit[0]:
+        if f_corner < 0.9 * f_fit[0]:  # soft constraint (corner_penalty): only clearly below the band
             append_log(f'NOTE: skin section {section} corner frequency ({f_corner/1e9:.3g} GHz) is below the fit band - '
                        f'in band it acts as an additional series resistance Rskin{section}')
         elif f_corner > f_fit[-1]:
@@ -614,12 +671,50 @@ def fit_band(f, srf):
     assert np.count_nonzero(fit_mask) >= 10, 'not enough data points in fit band'
     return fmax, fit_mask
 
+def log_fmin_note(f_fit, fit_mask):
+    if not fit_mask[0]:
+        append_log(f'NOTE: data below {f_fit[0]/1e9:.3f} GHz was not used for fitting (--fmin) - the DC resistance '
+                   f'and inductance of the model are extrapolated, not fitted')
+
 def below(f, fit_mask, srf, factor=LQ_SRF_FACTOR):
     # mask of the fit band below factor x SRF (L and Q are well defined well below SRF)
     mask = fit_mask.copy()
     if srf is not None:
         mask &= f <= factor * srf
     return mask
+
+def spice_to_spectre(netlist):
+    # translate the SPICE subcircuit lines written by this tool (comments, .SUBCKT/.ENDS, two
+    # terminal R/L/C elements, K coupling) into Spectre syntax, so both formats come from one source
+    masters = {'R': ('resistor', 'r'), 'L': ('inductor', 'l'), 'C': ('capacitor', 'c')}
+    out = ['simulator lang=spectre']
+    for line in netlist:
+        tokens = line.split()
+        if line.startswith('*'):
+            out.append('//' + line[1:])
+        elif tokens[0] == '.SUBCKT':
+            subckt = tokens[1]
+            out.append(f'subckt {subckt} ' + ' '.join(tokens[2:]))
+        elif tokens[0] == '.ENDS':
+            out.append(f'ends {subckt}')
+        elif tokens[0][0] == 'K':
+            name, l1, l2, k = tokens
+            out.append(f'{name} mutual_inductor coupling={k} ind1={l1} ind2={l2}')
+        else:
+            name, n1, n2, value = tokens
+            master, param = masters[name[0]]
+            out.append(f'{name} ({n1} {n2}) {master} {param}={value}')
+    return out
+
+def write_netlist(netlist, base_filename):
+    # SPICE netlist lines -> <base>_model.sp, or with --spectre <base>_model.scs
+    if args.spectre:
+        netlist, filename, kind = spice_to_spectre(netlist), base_filename + '_model.scs', 'Spectre'
+    else:
+        filename, kind = base_filename + '_model.sp', 'SPICE'
+    with open(filename, 'w', encoding='utf-8') as netlist_file:
+        netlist_file.write('\n'.join(netlist) + '\n')
+    append_log(f'{kind} netlist written to {filename}')
 
 def write_log_file(base_filename):
     progress('Done')
@@ -714,15 +809,23 @@ def run_two_port(sub_full):
                     Q11=Q11_meas[fit_mask], Q22=Q22_meas[fit_mask], Qdiff=Qdiff_meas[fit_mask])
 
     all_fit = np.ones(len(f_fit), dtype=bool)
+    wq = peak_q_weight(meas_fit, (('Q11', lq_fit), ('Q22', lq_fit), ('Qdiff', lqdiff_fit)), len(f_fit))
+    wL, wQ = (W_L, W_Q) if wq is None else (W_L * wq, W_Q * wq)
+    norm_floor = {}
+    if args.shunt_accuracy is not None:
+        floor = args.shunt_accuracy * np.abs(meas_fit['Yser'])
+        norm_floor = dict(Ysh1=floor, Ysh2=floor, ReYsh1=floor, ReYsh2=floor)
+    log_weighting(f_fit, wq)
     goals = make_goals(meas_fit, [
         ('Y11', W_Y, all_fit), ('Y22', W_Y, all_fit), ('Yser', W_Y, all_fit),
         ('Ysh1', W_SHUNT, all_fit), ('Ysh2', W_SHUNT, all_fit),
         ('ReYsh1', W_SHUNT_RE, all_fit), ('ReYsh2', W_SHUNT_RE, all_fit),
-        ('L11', W_L, lq_fit), ('L22', W_L, lq_fit), ('Ldiff', W_L, lqdiff_fit),
-        ('Q11', W_Q, lq_fit), ('Q22', W_Q, lq_fit), ('Qdiff', W_Q, lqdiff_fit)])
+        ('L11', wL, lq_fit), ('L22', wL, lq_fit), ('Ldiff', wL, lqdiff_fit),
+        ('Q11', wQ, lq_fit), ('Q22', wQ, lq_fit), ('Qdiff', wQ, lqdiff_fit)], norm_floor)
 
     def residual_fn_for(segments):
-        return lambda x: goal_residuals(model_quantities(10 ** x, omega_fit, segments), meas_fit, goals)
+        return lambda x: np.concatenate([goal_residuals(model_quantities(10 ** x, omega_fit, segments), meas_fit, goals),
+                                         corner_penalty(PARAM_NAMES, x, f_fit[0])])
 
     # bounds in decades around the seed values; the skin and coupling elements get a wider range,
     # Cox is well determined by the low frequency shunt capacitance and gets a narrow range
@@ -905,6 +1008,7 @@ def run_two_port(sub_full):
         append_log(f'WARNING: model SRF is outside the data range - extrapolated')
     if fmax < f[-1]:
         append_log(f'Data above {fmax/1e9:.3f} GHz was not used for fitting (beyond {SRF_FIT_FACTOR} x SRF)')
+    log_fmin_note(f_fit, fit_mask)
     append_log('')
 
     # ---------------- output files ----------------
@@ -960,10 +1064,7 @@ def run_two_port(sub_full):
             f'Csub12 s0 s{segments} {fit["Csub12"]:.6g}',
         ]
     netlist.append('.ENDS')
-    netlist_filename = base_filename + '_model.sp'
-    with open(netlist_filename, 'w', encoding='utf-8') as netlist_file:
-        netlist_file.write('\n'.join(netlist) + '\n')
-    append_log(f'SPICE netlist written to {netlist_filename}')
+    write_netlist(netlist, base_filename)
 
     # model S-parameters on the original frequency grid (including a DC point, if present)
     model_filename = base_filename + '_model.s2p'
@@ -1083,8 +1184,9 @@ def run_center_tap(net_full):
 
     # half coils, coupling and center tap lead from the low frequency impedance matrix of p1/p2
     # with the center tap as reference: Z11' = Zhalf1 + Rct, Z22' = Zhalf2 + Rct, Z12' = Rct - jwM
-    Zp = np.linalg.inv(Ymeas[:3, :2, :2])
-    w3 = omega[:3]
+    i0 = int(np.argmax(fit_mask))  # first point of the fit band
+    Zp = np.linalg.inv(Ymeas[i0:i0 + 3, :2, :2])
+    w3 = omega[i0:i0 + 3]
     Rct0 = max(np.median(Zp[:, 0, 1].real), 1e-3)
     R_half = [max(np.median(Zp[:, i, i].real) - Rct0, 0.1 * np.median(Zp[:, i, i].real)) for i in (0, 1)]
     L_half = [np.median(Zp[:, i, i].imag / w3) for i in (0, 1)]
@@ -1106,16 +1208,25 @@ def run_center_tap(net_full):
     meas_fit = {key: value[fit_mask] for key, value in meas.items() if key != 'Y'}
     all_fit = np.ones(len(f_fit), dtype=bool)
     lq_fit = {key: mask[fit_mask] for key, mask in lq_masks.items()}
+    lq_keys = ('dd_gnd', 'dd_open', 'cm', '11', '22')
+    wq = peak_q_weight(meas_fit, [('Q' + key, lq_fit[key]) for key in lq_keys], len(f_fit))
+    wL, wQ = (W_L, W_Q) if wq is None else (W_L * wq, W_Q * wq)
+    norm_floor = {}
+    if args.shunt_accuracy is not None:
+        series = np.max(np.abs([meas_fit[key] for key in ('B12', 'B13', 'B23')]), axis=0)
+        norm_floor = {key: args.shunt_accuracy * series for key in ('S1', 'S2', 'S3', 'ReS1', 'ReS2', 'ReS3')}
+    log_weighting(f_fit, wq)
     goal_list = [(key, W_Y, all_fit) for key in ('Y11', 'Y22', 'Y33', 'B12', 'B13', 'B23')] + \
                 [(key, W_SHUNT, all_fit) for key in ('S1', 'S2', 'S3')] + \
                 [(key, W_SHUNT_RE, all_fit) for key in ('ReS1', 'ReS2', 'ReS3')]
-    for key in ('dd_gnd', 'dd_open', 'cm', '11', '22'):
-        goal_list += [('L' + key, W_L, lq_fit[key]), ('Q' + key, W_Q, lq_fit[key])]
-    goals = make_goals(meas_fit, goal_list)
+    for key in lq_keys:
+        goal_list += [('L' + key, wL, lq_fit[key]), ('Q' + key, wQ, lq_fit[key])]
+    goals = make_goals(meas_fit, goal_list, norm_floor)
 
     def residual_fn_for(segments):
-        return lambda x: goal_residuals(ct_quantities(y_model_ct(10 ** x, omega_fit, segments), omega_fit),
-                                        meas_fit, goals)
+        return lambda x: np.concatenate([goal_residuals(ct_quantities(y_model_ct(10 ** x, omega_fit, segments), omega_fit),
+                                                        meas_fit, goals),
+                                         corner_penalty(CT_PARAM_NAMES, x, f_fit[0])])
 
     span = np.array([2, 2, 3, 3, 3, 3] * 2 + [0, 3, 3] + [COX_SPAN, 3, 3] * 3)
     x_base_seed = np.log10(seed)
@@ -1249,6 +1360,7 @@ def run_center_tap(net_full):
         append_log('WARNING: no self resonance found in the input data - model SRF is extrapolated')
     if fmax < f[-1]:
         append_log(f'Data above {fmax/1e9:.3f} GHz was not used for fitting (beyond {SRF_FIT_FACTOR} x SRF)')
+    log_fmin_note(f_fit, fit_mask)
     append_log('')
 
     # ---------------- output files ----------------
@@ -1310,10 +1422,7 @@ def run_center_tap(net_full):
             f'Csi{sfx} s{k} 0 {Csi_k[k]:.6g}',
         ]
     netlist.append('.ENDS')
-    netlist_filename = base_filename + '_model.sp'
-    with open(netlist_filename, 'w', encoding='utf-8') as netlist_file:
-        netlist_file.write('\n'.join(netlist) + '\n')
-    append_log(f'SPICE netlist written to {netlist_filename}')
+    write_netlist(netlist, base_filename)
 
     # model S-parameters on the original frequency grid and in the original port order
     inverse_order = np.argsort(port_order)
@@ -1388,8 +1497,19 @@ parser.add_argument("--substrate", help="substrate network (default: auto = simp
                     choices=['auto'] + list(SUBSTRATE_VARIANTS), default='auto')
 parser.add_argument("--ct-port", help="center tap port number of S3P data (default: 3)", type=int, choices=(1, 2, 3), default=3)
 parser.add_argument("--basic", help="basic model with fixed topology: 1 coil segment, 1 skin section, no substrate coupling", action='store_true')
+parser.add_argument("--peak-q-weight", help=f"emphasize L and Q around the Q peak: weight factor up to 1+A at the Q peak "
+                                            f"(default without value: A = {DEFAULT_PEAK_Q_WEIGHT:g})",
+                    type=float, nargs='?', const=DEFAULT_PEAK_Q_WEIGHT, metavar='A')
+parser.add_argument("--shunt-accuracy", help=f"accuracy of the shunt (substrate) branch in the input data, relative to the series "
+                                             f"branch: shunt errors below K x |series branch| are tolerated, for measured or FDTD "
+                                             f"data with limited accuracy at low frequency (default without value: K = {DEFAULT_SHUNT_ACCURACY:g})",
+                    type=float, nargs='?', const=DEFAULT_SHUNT_ACCURACY, metavar='K')
+parser.add_argument("--spectre", help="write the model netlist in Spectre format (<name>_model.scs) instead of SPICE (<name>_model.sp)",
+                    action='store_true')
 parser.add_argument("--noplot", help="don't show plots", action='store_true')
 args = parser.parse_args()
+assert args.peak_q_weight is None or args.peak_q_weight > 0, '--peak-q-weight must be positive'
+assert args.shunt_accuracy is None or args.shunt_accuracy > 0, '--shunt-accuracy must be positive'
 if args.basic:
     assert args.segments in (None, 1), '--basic model always uses 1 coil segment'
     args.segments = 1
