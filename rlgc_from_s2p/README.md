@@ -20,7 +20,7 @@ a command line parameter, this is required for calculation!
 
 
 # Prerequisites
-The code requires Python3 with the skitkit-rf library.
+The code requires Python3 with the scikit-rf, numpy and matplotlib libraries, see [Requirements](../README.md#requirements).
 https://scikit-rf.readthedocs.io/en/latest/tutorials/index.html
 
 # Usage

@@ -22,7 +22,7 @@ wideband. Self resonance (a capacitor across the coil) and skin effect
 by an alternative curve-fitted wideband series branch model, see below.
 
 # Prerequisites
-The code requires Python3 with the scikit-rf and scipy libraries.
+The code requires Python3 with the scikit-rf, scipy, numpy and matplotlib libraries, see [Requirements](../README.md#requirements).
 https://scikit-rf.readthedocs.io/en/latest/tutorials/index.html
 
 # Usage

@@ -196,7 +196,7 @@ reduction. The model is also valid at DC.
 
 # Prerequisites
 
-Python3 with the scikit-rf, scipy, numpy and matplotlib libraries.
+Python3 with the scikit-rf, scipy, numpy and matplotlib libraries, see [Requirements](../README.md#requirements).
 Regenerating the schematic image (`doc/draw_model.py`) also needs schemdraw.
 
 # Usage

@@ -29,7 +29,7 @@ the C curve for the fitted model is included in the plot.
 
 
 # Prerequisites
-The code requires Python3 with the skitkit-rf library.
+The code requires Python3 with the scikit-rf and matplotlib libraries, see [Requirements](../README.md#requirements).
 https://scikit-rf.readthedocs.io/en/latest/tutorials/index.html
 
 # Usage
