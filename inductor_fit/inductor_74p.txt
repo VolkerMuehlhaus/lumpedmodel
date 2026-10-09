@@ -13,12 +13,12 @@ Substrate network: symmetric (simplest physical variant with cost within 1.1 x b
 
 Fitted model element values, totals over all segments (seed values in brackets)
 Series branch
-  Rs     :       0.3469 Ohm   (0.3226 Ohm)
-  Ls     :      0.06885 nH   (0.05774 nH)
-  Rskin1 :       0.6954 Ohm   (0.3775 Ohm)
-  Lskin1 :      0.02982 nH   (0.03129 nH)
-  Rskin2 :        1.935 Ohm   (4.751 Ohm)
-  Lskin2 :     0.002559 nH   (0.01195 nH)
+  Rs     :       0.3473 Ohm   (0.3226 Ohm)
+  Ls     :      0.06886 nH   (0.05774 nH)
+  Rskin1 :        0.696 Ohm   (0.3775 Ohm)
+  Lskin1 :      0.02972 nH   (0.03129 nH)
+  Rskin2 :        1.934 Ohm   (4.751 Ohm)
+  Lskin2 :     0.002555 nH   (0.01195 nH)
   Cs     :       0.0001 fF   (0.1 fF)
 Shunt branch port 1
   Cox1   :        14.96 fF   (16.16 fF)
@@ -30,25 +30,25 @@ Shunt branch port 2 (symmetric: same as port 1)
   Csi2   :    0.0002867 fF   (0.2867 fF)
 
 Derived values
-  L at DC (Ls + Lskin1 + Lskin2)          [nH] : 0.1012
-  R at high frequency (Rs+Rskin1+Rskin2) [Ohm]: 2.977
-  Skin section 1 corner frequency        [GHz]: 3.712
-  Skin section 2 corner frequency        [GHz]: 120.4
+  L at DC (Ls + Lskin1 + Lskin2)          [nH] : 0.1011
+  R at high frequency (Rs+Rskin1+Rskin2) [Ohm]: 2.978
+  Skin section 1 corner frequency        [GHz]: 3.727
+  Skin section 2 corner frequency        [GHz]: 120.5
 
                                       data     model
-  SRF port 1 (port 2 shorted) [GHz]:   170.658   171.053
-  SRF port 2 (port 1 shorted) [GHz]:   170.605   171.053
-  SRF differential            [GHz]:   332.852   331.856
+  SRF port 1 (port 2 shorted) [GHz]:   170.658   171.051
+  SRF port 2 (port 1 shorted) [GHz]:   170.605   171.051
+  SRF differential            [GHz]:   332.852   331.853
   Peak Q11                         :     17.19     17.36
   Frequency of peak Q11       [GHz]:    85.000    77.000
-  Peak Q differential              :     24.97     23.66
+  Peak Q differential              :     24.97     23.67
   Frequency of peak Q diff    [GHz]:   159.000   155.000
-  L11 at 0.010 GHz         [nH] :    0.1428    0.1012
-  R11 at 0.010 GHz        [Ohm] :    0.3243    0.3470
+  L11 at 0.010 GHz         [nH] :    0.1428    0.1011
+  R11 at 0.010 GHz        [Ohm] :    0.3243    0.3473
 
 Fit cost (weighted error function): 0.003951
-RMS relative error over fit band [%]: Y11 6.53, Y22 6.53, Y21 6.52, S21 0.85
-RMS relative error below 0.8 x SRF [%]   : L11 5.43, Q11 4.12, L22 5.42, Q22 4.09
+RMS relative error over fit band [%]: Y11 6.60, Y22 6.60, Y21 6.59, S21 0.85
+RMS relative error below 0.8 x SRF [%]   : L11 5.44, Q11 4.10, L22 5.43, Q22 4.08
 
 NOTE: Rsi1 is negligible against Cox1 in the fit band - Cox1 effectively connects to ground, Rsi1/Csi1 values are not determined by the data
 NOTE: Cs ran to its lower bound - this element has no effect for this data

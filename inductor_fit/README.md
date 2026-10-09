@@ -68,6 +68,47 @@ so the model is always unique. Port symmetry is still taken from the data. This 
 topology for every fit, which is useful for example when generating data tables for machine
 learning.
 
+## Fit weighting options
+
+By default, the fit treats the whole band evenly. Two options shift the emphasis:
+
+- **`--peak-q-weight [A]`**: more weight on L and Q around the Q peak. Points where the
+  Q of the input data is at least 0.8 x its peak get up to (1+A) times the normal weight
+  (default A = 2). The Q responses are Q11, Q22 and Qdiff, or all five Q responses for S3P.
+  The log shows the weighted band.
+  - On 9 test datasets (simulated and measured), A = 2 halved the mean Q error around the peak,
+    from 2.0% to 1.0%.
+  - The cost is a little more error elsewhere: low-frequency Q error 1.4% -> 2.0%, S21 error up
+    to +0.7 percentage points.
+  - A = 5 gets closer at the peak (0.7%), but costs more elsewhere, especially for S3P data
+    with a flat Q curve, where the weighted band covers most of the fit band.
+- **`--shunt-accuracy [K]`**: tolerance for the shunt (substrate) branch at low frequency
+  (default K = 0.01). At low frequency, the shunt branch is 1e-4 to 1e-3 of the series branch.
+  A small absolute error of the input S-parameters swamps it: measurement noise, or limited
+  accuracy of the EM solver.
+  - Without this option, the fit still tries to match those points to the same relative
+    accuracy, which pulls the substrate network away from the correct values.
+  - With it, errors in the shunt branch are measured relative to at least K x |series branch|.
+  - Test with synthetic data of known element values plus S-parameter noise of 1e-3 to 3e-3:
+    without the option, Cox was 14-36% off, Rsi 11-26%, and the coil segment count was wrong;
+    with K = 0.01, Cox and Rsi came back within 0-7% for 1e-3 noise.
+  - On clean EM data, the option changes the results only slightly.
+  - Recommended for measured data and FDTD data.
+
+Both options change the error function, so fit costs are only comparable between runs with
+the same options.
+
+**Why there is no option to ignore low-frequency data:** the series branch at low frequency is
+the only thing that determines the DC resistance and the low-frequency inductance. Without it
+(for example with `--fmin` at 1-2 GHz), the fitted DC resistance of a 4.7 Ohm inductor dropped
+to 0.01-0.5 Ohm, and the low-frequency Q was off by several 100%. `--fmin` is still available;
+the log then notes that the DC values are extrapolated.
+
+**FDTD data (openEMS):** a low-frequency resistance error from an FDTD run that stopped too early
+(end criterion `energy_limit` -40 dB) is a smooth offset plus a ripple over a wide band. It
+looks physically plausible, so the fit can neither detect nor correct it. Use -60 dB, see
+the [L6n2 openEMS study](https://github.com/VolkerMuehlhaus/openems_ihp_sg13g2/tree/main/more_examples/measured_vs_simulated/more_accurate_models_L6n2).
+
 ## Center-tapped inductors (3-port S3P)
 
 3-port data with the ports p1, p2 and the center tap ct is fitted automatically with the
@@ -140,7 +181,13 @@ selects which port of the S3P file is the center tap (default 3).
    - Y11, Y22, the series branch, both shunt branches, and the substrate loss Re(shunt);
    - L and Q at port 1 (port 2 grounded), at port 2, and differentially, below 0.8 x SRF.
 
-   The weights are constants at the top of the script. The number of coil segments is chosen
+   The skin section corner frequencies are kept at or above the lowest fit frequency (soft
+   constraint). Below the data, a corner is not determined. A corner far below the band would
+   give the model a too-low DC resistance and a far too high DC inductance; this happened with
+   FDTD data before, for example 330 nH instead of 4.8 nH.
+
+   The weights are constants at the top of the script, `--peak-q-weight` and
+   `--shunt-accuracy` modify them (see [Fit weighting options](#fit-weighting-options)). The number of coil segments is chosen
    first, using the substrate network without coupling. The substrate variant is chosen
    second, as described above.
 
@@ -155,7 +202,7 @@ Regenerating the schematic image (`doc/draw_model.py`) also needs schemdraw.
 # Usage
 
 ```
-python inductor_fit.py <s2p or s3p file> [--basic] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin GHz] [--fmax GHz] [--noplot]
+python inductor_fit.py <s2p or s3p file> [--basic] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin GHz] [--fmax GHz] [--peak-q-weight [A]] [--shunt-accuracy [K]] [--spectre] [--noplot]
 ```
 
 | option | meaning |
@@ -164,7 +211,10 @@ python inductor_fit.py <s2p or s3p file> [--basic] [--segments N] [--substrate V
 | `--segments N` | use N coil segments (per half coil for S3P) instead of choosing automatically from 1, 2, 3 |
 | `--substrate VARIANT` | `symmetric`, `asymmetric`, `symmetric+coupling` or `asymmetric+coupling` instead of `auto` (S3P: `symmetric` or `asymmetric` only) |
 | `--ct-port N` | S3P only: port number of the center tap (default 3) |
-| `--fmin`, `--fmax` | fit band limits in GHz (default: lowest data point to 1.2 x SRF) |
+| `--fmin`, `--fmax` | fit band limits in GHz (default: lowest data point to 1.2 x SRF). With `--fmin`, the DC values are extrapolated, not fitted |
+| `--peak-q-weight [A]` | more weight on L and Q around the Q peak, up to (1+A) x (default A = 2), see [Fit weighting options](#fit-weighting-options) |
+| `--shunt-accuracy [K]` | tolerate shunt (substrate) branch errors below K x the series branch (default K = 0.01), for measured or FDTD data |
+| `--spectre` | write the model netlist in Spectre format (`<name>_model.scs`) instead of SPICE (`<name>_model.sp`) |
 | `--noplot` | no plot windows, for example in batch runs |
 
 Output files, written next to the input file:
@@ -173,6 +223,7 @@ Output files, written next to the input file:
 |---|---|
 | `<name>.txt` | log: model selection, element values, SRF / peak Q of input data vs. model, fit errors, notes and warnings |
 | `<name>_model.sp` | SPICE subcircuit `inductor_model p1 p2` (S3P: `ct_inductor_model p1 p2 ct`, with `K` coupling elements), with explicit elements per segment |
+| `<name>_model.scs` | with `--spectre`, instead of `.sp`: the same subcircuit in Spectre syntax (`simulator lang=spectre`, `resistor`/`inductor`/`capacitor`, `mutual_inductor` coupling) |
 | `<name>_model.s2p` / `.s3p` | model S-parameters on the frequency grid and in the port order of the input data, for comparison |
 
 Example, using the sample_inductor.s2p file included in this folder:
@@ -209,7 +260,7 @@ Shunt branch port 2 (symmetric: same as port 1)
   Frequency of peak Q diff    [GHz]:     9.075     8.925
 ...
 RMS relative error over fit band [%]: Y11 0.75, Y22 0.75, Y21 0.77, S21 0.76
-RMS relative error below 0.8 x SRF [%]   : L11 1.05, Q11 0.51, L22 0.65, Q22 1.04
+RMS relative error below 0.8 x SRF [%]   : L11 1.05, Q11 0.50, L22 0.65, Q22 1.03
 ```
 
 The plots compare the input data (simulated or measured S-parameters) and the model. The gray area marks data that was not used for
@@ -251,20 +302,20 @@ Symmetry from the data (RMS difference, threshold 5 %):
   substrate at p1/p2    :   5.91 % -> asymmetric
 ...
 Derived values
-  Half coil inductance at DC (Ls + Lskin)     [nH] : 0.1728, 0.1728
-  Mutual inductance M = k*sqrt(Ls_h1*Ls_h2)   [nH] : 0.06249
-  Differential inductance at DC (L1+L2+2M)   [nH] : 0.4706
-  Differential resistance at DC (Rs1+Rs2)   [Ohm] : 1.718
+  Half coil inductance at DC (Ls + Lskin)     [nH] : 0.1725, 0.1725
+  Mutual inductance M = k*sqrt(Ls_h1*Ls_h2)   [nH] : 0.06251
+  Differential inductance at DC (L1+L2+2M)   [nH] : 0.47
+  Differential resistance at DC (Rs1+Rs2)   [Ohm] : 1.72
 
                                                                    data     model
-  Peak Q differential, center tap AC grounded               :     18.76     18.16   at 37.500 / 35.250 GHz
-  Peak Q common mode at center tap                          :     10.26     10.34   at 60.000 / 60.000 GHz
-  Peak Q port 1 (p2, ct grounded)                           :     11.05     11.12   at 51.750 / 46.500 GHz
+  Peak Q differential, center tap AC grounded               :     18.76     18.18   at 37.500 / 35.250 GHz
+  Peak Q common mode at center tap                          :     10.26     10.28   at 60.000 / 60.000 GHz
+  Peak Q port 1 (p2, ct grounded)                           :     11.05     11.18   at 51.750 / 45.750 GHz
 ...
-RMS relative error over fit band [%]: Y11 2.37, Y22 3.44, Y33 2.45, Y21 3.52, Y31 1.98, S21 1.95, S31 0.40
+RMS relative error over fit band [%]: Y11 2.51, Y22 3.44, Y33 2.55, Y21 3.74, Y31 2.14, S21 1.93, S31 0.36
 ```
 The two half coils have the same inductance but different resistance. The model therefore ties
-only the inductances of the halves (effective k = 0.41), and fits the resistances separately.
+only the inductances of the halves (effective k = 0.42), and fits the resistances separately.
 
 <img src="./doc/inductor3_ct_fig1.png" width="700">
 
