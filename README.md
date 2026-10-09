@@ -29,3 +29,8 @@ bulk silicon network and skin effect. Exports a SPICE subcircuit.
 [<img src="./doc/rlgc_segments.png" width="500" />](./doc/rlgc_segments.png)
 
 
+## License
+
+Copyright (C) 2026 Volker Muehlhaus <volker@muehlhaus.com>
+
+This project is licensed under the GNU General Public License v3.0 or later, see [LICENSE](./LICENSE).

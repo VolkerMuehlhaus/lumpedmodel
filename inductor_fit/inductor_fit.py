@@ -1,3 +1,18 @@
+# Copyright (C) 2026 Volker Muehlhaus <volker@muehlhaus.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 # Wideband RFIC inductor model fit from S2P data (2-port inductor) or S3P data (center-tapped
 # inductor), including the substrate network.
 # Fully automatic: analytic seed values from the pi (2-port) or delta (3-port) decomposition of
