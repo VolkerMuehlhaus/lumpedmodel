@@ -158,8 +158,11 @@ What is fitted and reported, input data vs. model:
 | single ended | `1/Y11`, `1/Y22` |
 
 The error function also contains the delta decomposition of the 3-port, which is exact for any
-3-port: branches `-Y12`, `-Y13`, `-Y23` and the row-sum shunts at p1, p2 and ct. `--ct-port`
-selects which port of the S3P file is the center tap (default 3).
+3-port: branches `-Y12`, `-Y13`, `-Y23` and the row-sum shunts at p1, p2 and ct. The center tap
+is detected from the data: at the lowest frequency, with the other ports grounded, the two coil ends
+share the weakest transfer admittance (current from a coil end mostly leaves through the nearby
+center tap). `--ct-port` sets the center tap port instead; the log notes when it disagrees with
+the detection. The model output keeps the port order of the input file.
 
 # Theory of operation
 
@@ -210,7 +213,7 @@ python inductor_fit.py <s2p or s3p file> [--basic] [--segments N] [--substrate V
 | `--basic` | fixed basic topology: 1 coil segment, 1 skin section, no substrate coupling |
 | `--segments N` | use N coil segments (per half coil for S3P) instead of choosing automatically from 1, 2, 3 |
 | `--substrate VARIANT` | `symmetric`, `asymmetric`, `symmetric+coupling` or `asymmetric+coupling` instead of `auto` (S3P: `symmetric` or `asymmetric` only) |
-| `--ct-port N` | S3P only: port number of the center tap (default 3) |
+| `--ct-port N` | S3P only: port number of the center tap (default: detected from the data) |
 | `--fmin`, `--fmax` | fit band limits in GHz (default: lowest data point to 1.2 x SRF). With `--fmin`, the DC values are extrapolated, not fitted |
 | `--peak-q-weight [A]` | more weight on L and Q around the Q peak, up to (1+A) x (default A = 2), see [Fit weighting options](#fit-weighting-options) |
 | `--shunt-accuracy [K]` | tolerate shunt (substrate) branch errors below K x the series branch (default K = 0.01), for measured or FDTD data |
@@ -290,7 +293,7 @@ With automatic segmentation, the tool picks 3 segments. The model then follows L
 
 [final_inductor3_N2_do82.29_w4_s4.s3p](./examples/final_inductor3_N2_do82.29_w4_s4.s3p) is an
 inductor3 (2 turns, 82.29 µm outer diameter, 4 µm width and spacing), simulated with Palace up
-to 60 GHz. Port 3 is the center tap.
+to 60 GHz. Port 3 is the center tap (detected automatically).
 ```
 python inductor_fit.py examples/final_inductor3_N2_do82.29_w4_s4.s3p
 ```
@@ -336,3 +339,15 @@ only the inductances of the halves (effective k = 0.42), and fits the resistance
   for example 74 pH: 0.143 nH at 10 MHz -> 0.075 nH above 5 GHz. The two skin sections only
   partly follow it, because there are few data points in that range. The effect on circuit
   behaviour is small, because wL is tiny there.
+
+# Version history
+
+`python inductor_fit.py --version` prints the version, the log and the model file headers name it.
+
+- **1.1**: the center tap of S3P data is detected from the data (`--ct-port` overrides); a lossy
+  coil whose skin section seed exceeds its bound no longer aborts the fit; 2-port data that is
+  not inductive at the low end of the fit band (e.g. a capacitor) is refused with a reason
+  instead of fitted; the center-tapped model evaluates faster (same results). All four come
+  from the [snp2le](https://github.com/iic-jku/snp2le) port of this tool and its review
+  (snp2le PRs #14 to #16).
+- **1.0**: the version ported to snp2le (first version with a version number).

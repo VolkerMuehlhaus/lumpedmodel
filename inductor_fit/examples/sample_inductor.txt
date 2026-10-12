@@ -1,4 +1,4 @@
-Wideband inductor model fit from S-parameter file
+Wideband inductor model fit from S-parameter file (inductor_fit.py 1.1)
 Input file: sample_inductor.s2p
 S2P frequency range is 0.0 to 30.0 GHz
 Fit band: 0.075 to 24.975 GHz (333 points)

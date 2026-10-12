@@ -28,6 +28,13 @@ bulk silicon network and skin effect. Exports a SPICE or Spectre subcircuit.
 
 [<img src="./doc/rlgc_segments.png" width="500" />](./doc/rlgc_segments.png)
 
+## Versions
+
+Each tool has its own version (`__version__` in the script, shown by `--version`), so the version
+stays with a script that is copied on its own. `inductor_fit` also writes it into the log and
+the headers of the model files it generates. The `MINOR` part of `MAJOR.MINOR` is bumped for
+fixes and new options, `MAJOR` when the command line or the output format changes incompatibly.
+
 ## Requirements
 
 Python 3 with these libraries:

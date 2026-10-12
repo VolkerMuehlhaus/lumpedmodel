@@ -44,7 +44,7 @@ Each tool is invoked directly with argparse-style positional arguments; run with
   behaviour and the simplest physically meaningful substrate variant; `--basic` fixes 1 segment /
   1 skin section / no coupling (consistent, unique topology, e.g. for ML data tables).
   3-port input switches to the center-tapped inductor model (two coupled half coils, effective
-  k, Rct lead, substrate at p1/p2/ct; `--ct-port` names the tap port).
+  k, Rct lead, substrate at p1/p2/ct; center tap detected from the data, `--ct-port` overrides).
   Writes `.txt`, `<base>_model.sp` (SPICE subckt) and `<base>_model.s2p`/`.s3p`; needs `scipy`.
   `doc/draw_model.py` regenerates both schematic images (needs `schemdraw`).
 - `vector_fit/vectorfit_sparam.py <snp> [numpoles]` — full n-port wideband vector fit (via
@@ -55,6 +55,16 @@ Example:
 ```
 python pi_from_s2p/pi_from_s2p.py pi_from_s2p/sample_inductor.s2p 20
 ```
+
+## Versions
+
+Each script carries its own `__version__ = "MAJOR.MINOR"` and a `--version` flag (no repo-wide
+version). Bump MINOR whenever a change alters a tool's behaviour or results, MAJOR for incompatible
+CLI/output changes, and add a line to the tool README's version history where it has one
+(`inductor_fit`). `inductor_fit` writes the version into the `.txt` log, the SPICE/Spectre
+header and the model `.s2p`/`.s3p` comment, so a version bump changes those lines in all
+checked-in example outputs: regenerate them (run from inside `examples/`, so the logged paths stay
+bare file names).
 
 ## Common script structure
 
