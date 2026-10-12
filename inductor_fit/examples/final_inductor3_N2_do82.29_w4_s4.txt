@@ -1,7 +1,7 @@
-Wideband inductor model fit from S-parameter file
+Wideband inductor model fit from S-parameter file (inductor_fit.py 1.1)
 Input file: final_inductor3_N2_do82.29_w4_s4.s3p
 S3P frequency range is 0.01 to 60.0 GHz
-Center-tapped inductor: port 1 = p1, port 2 = p2, port 3 = center tap
+Center-tapped inductor: port 1 = p1, port 2 = p2, port 3 = center tap (detected)
 Fit band: 0.010 to 60.000 GHz (82 points)
 
 Fit cost for number of coil segments per half: 1: 0.01014, 2: 0.007279, 3: 0.007511

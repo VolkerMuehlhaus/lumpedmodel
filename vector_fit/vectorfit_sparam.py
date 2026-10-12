@@ -15,6 +15,8 @@
 
 # test scikit-rf vector fit for S-parameters
 
+__version__ = "1.0"
+
 import os
 import skrf 
 from skrf.vectorFitting import  VectorFitting
@@ -37,6 +39,7 @@ print('If numpoles parameter is not specified, it will be determined automatical
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 parser.add_argument("snp",  help="SnP input filename (Touchstone format)")
 parser.add_argument("numpoles",  help="Number of real poles (default=automatic)", default=0, nargs='?', type=int)
 args = parser.parse_args()

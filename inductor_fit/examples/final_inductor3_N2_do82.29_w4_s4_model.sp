@@ -1,5 +1,5 @@
 * WIDEBAND RFIC CENTER-TAPPED INDUCTOR MODEL WITH SUBSTRATE NETWORK
-* Created using inductor_fit.py from final_inductor3_N2_do82.29_w4_s4.s3p
+* Created using inductor_fit.py 1.1 from final_inductor3_N2_do82.29_w4_s4.s3p
 * Fit band 0.010 to 60.000 GHz, 2 coil segment(s) per half coil
 * k is the effective coupling including the center tap lead inductance
 * Total element values:

@@ -1,4 +1,4 @@
-!Center-tapped inductor model fitted by inductor_fit.py from final_inductor3_N2_do82.29_w4_s4.s3p
+!Center-tapped inductor model fitted by inductor_fit.py 1.1 from final_inductor3_N2_do82.29_w4_s4.s3p
 ! Created with skrf 1.11.0 (http://scikit-rf.org).
 # GHz S RI R 50.0 
 !freq ReS11 ImS11 ReS12 ImS12 ReS13 ImS13

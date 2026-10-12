@@ -16,6 +16,8 @@
 # extract rlgc line model, single frequency exctration
 # data reader and extraction based on scikit-rf functionality
 
+__version__ = "1.0"
+
 import skrf as rf
 import numpy as np
 import argparse
@@ -31,6 +33,7 @@ def append_log (txt):
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 parser.add_argument("s2p",  help="S2P input filename (Touchstone format)")
 parser.add_argument("f_ghz", help="extraction frequency in GHz", type=float)
 parser.add_argument("l_um", help="line length in micron", type=float)

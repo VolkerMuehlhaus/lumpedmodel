@@ -16,6 +16,8 @@
 # extract simple pi model, single frequency exctration, not accurate for wideband use
 # data reader and extraction based on scikit-rf functionality
 
+__version__ = "1.0"
+
 import skrf as rf
 from skrf.util import find_nearest_index
 import math
@@ -33,6 +35,7 @@ def append_log (txt):
 
 # evaluate commandline
 parser = argparse.ArgumentParser()
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 parser.add_argument("s2p",  help="S2P input filename (Touchstone format)")
 parser.add_argument("f_ghz", help="extraction frequency in GHz", type=float)
 args = parser.parse_args()

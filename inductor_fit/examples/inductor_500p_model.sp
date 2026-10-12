@@ -1,5 +1,5 @@
 * WIDEBAND RFIC INDUCTOR MODEL WITH SUBSTRATE NETWORK
-* Created using inductor_fit.py from inductor_500p.s2p
+* Created using inductor_fit.py 1.1 from inductor_500p.s2p
 * Fit band 0.010 to 78.000 GHz, 3 coil segment(s)
 * Total element values:
 *   Rs = 1.5923

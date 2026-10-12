@@ -50,6 +50,8 @@
 # needed. Option --basic always uses 1 segment, 1 skin section and no substrate coupling, for a
 # consistent topology across many fits, e.g. when generating data tables for machine learning.
 
+__version__ = "1.1"
+
 import skrf as rf
 import math
 import argparse
@@ -95,6 +97,7 @@ SUBSTRATE_VARIANTS = {'symmetric': (True, False), 'asymmetric': (False, False),
 SUBSTRATE_COST_TOLERANCE = 1.1
 SYMMETRY_TOLERANCE = 0.05  # symmetric model if the port/half responses differ by less (RMS)
 COX_SPAN = 0.5  # Cox bound in decades around the low frequency shunt capacitance (seed value)
+GRID_CHUNK = 2000  # frequencies per model evaluation on the dense SRF grid
 
 PARAM_NAMES = ['Rs', 'Ls', 'Rskin1', 'Lskin1', 'Rskin2', 'Lskin2', 'Cs',
                'Cox1', 'Rsi1', 'Csi1', 'Cox2', 'Rsi2', 'Csi2',
@@ -162,10 +165,24 @@ def stamp(M, n1, n2, y):
 def stamp_coupled(M, branches, Zb):
     # magnetically coupled branches: branch impedance matrix Zb (shape N,b,b) between node pairs
     # 'branches' [(n1, n2), ...], stamped as A * inv(Zb) * A^T with the incidence matrix A
-    A = np.zeros((M.shape[1], len(branches)))
-    for b, (n1, n2) in enumerate(branches):
-        A[n1, b], A[n2, b] = 1.0, -1.0
-    M += np.einsum('ib,fbc,jc->fij', A, np.linalg.inv(Zb), A)
+    # A holds only 0 and +-1, so each inv(Zb) entry lands at the four node pairs of its two branches.
+    # Summed in the order of einsum('ib,fbc,jc->fij', A, inv(Zb), A) this gives the same bits, but much
+    # faster: the einsum visits every node and branch pair (adopted from snp2le PR #16).
+    X = np.linalg.inv(Zb)
+    T = np.zeros_like(M)
+    for b, (n1b, n2b) in enumerate(branches):
+        for c, (n1c, n2c) in enumerate(branches):
+            x = X[:, b, c]
+            T[:, n1b, n1c] += x
+            T[:, n1b, n2c] -= x
+            T[:, n2b, n1c] -= x
+            T[:, n2b, n2c] += x
+    M += T
+
+def on_grid(model, p, omega, segments):
+    # model(p, omega, segments) on the dense SRF grid, a chunk of frequencies at a time: same values
+    # (every frequency is solved on its own), but bounded memory for many segments
+    return np.concatenate([model(p, omega[i:i + GRID_CHUNK], segments) for i in range(0, len(omega), GRID_CHUNK)])
 
 def kron_reduce(M, ports):
     # eliminate all internal nodes: Y = Ypp - Ypi * inv(Yii) * Yip
@@ -499,8 +516,11 @@ def seed_series(Yser, omega, fit_mask, num_skin_sections):
 
     Yser_fit = Yser[fit_mask]
     Cs0 = 1e-15
-    res = least_squares(series_residuals_rlc, x0=np.log10([Rs0, Ls0, Cs0]), args=(omega_fit, Yser_fit),
-                        bounds=(np.log10([1e-4, 1e-13, 1e-19]), np.log10([1e4, 1e-6, 1e-11])))
+    # seed starts are clipped into their bounds like the global fit starts: least_squares refuses a
+    # start outside them, e.g. Lskin = Rskin/(2 pi f_corner) above 1uH for a lossy coil from 1 MHz
+    rlc_lower, rlc_upper = np.log10([1e-4, 1e-13, 1e-19]), np.log10([1e4, 1e-6, 1e-11])
+    res = least_squares(series_residuals_rlc, x0=np.clip(np.log10([Rs0, Ls0, Cs0]), rlc_lower, rlc_upper),
+                        args=(omega_fit, Yser_fit), bounds=(rlc_lower, rlc_upper))
     Rs1, Ls1, Cs1 = 10 ** res.x
 
     # The skin effect corner frequencies are not known in advance - try (pairs of) seed corners
@@ -518,7 +538,7 @@ def seed_series(Yser, omega, fit_mask, num_skin_sections):
         Rskin0 = max(Rs1, 0.1) / num_skin_sections
         skin2 = (Rskin0, Rskin0 / (2 * math.pi * f_corner2)) if f_corner2 else 10 ** np.array(X_SKIN2_FIXED)
         x_template = np.log10([Rs1, Ls1, Rskin0, Rskin0 / (2 * math.pi * f_corner1), *skin2, Cs1])
-        res = least_squares(series_residuals_skin, x0=x_template[series_free],
+        res = least_squares(series_residuals_skin, x0=np.clip(x_template[series_free], series_lower, series_upper),
                             args=(x_template, omega_fit, Yser_fit), bounds=(series_lower, series_upper))
         if best is None or res.cost < best.cost:
             best = res
@@ -763,6 +783,14 @@ def run_two_port(sub_full):
     SRF_meas = min(srf_candidates) if srf_candidates else None
 
     fmax, fit_mask = fit_band(f, SRF_meas)
+    # A coil is inductive at the low end of the fit band (median of 3 points against noise). Otherwise the
+    # input is no inductor (e.g. a capacitor, inductive only above its series resonance) or a port is open.
+    for port, L_meas in ((1, L11_meas), (2, L22_meas)):
+        L_lf = np.median(L_meas[fit_mask][:3])
+        if L_lf <= 0:
+            raise SystemExit(f'ERROR: the input is not inductive at the low end of the fit band: L{port}{port} = '
+                             f'{L_lf*1e9:.3g} nH at {f[fit_mask][0]/1e9:.3g} GHz (other port shorted). This does not '
+                             f'look like an inductor, or a port is not connected to the coil.')
     f_fit = f[fit_mask]
     omega_fit = omega[fit_mask]
 
@@ -916,7 +944,7 @@ def run_two_port(sub_full):
 
     # model SRF on a dense grid, extended beyond the data range to allow for an extrapolated SRF
     f_grid = np.linspace(f[0], 1.5 * f[-1], 20000)
-    Y_grid = y_model(p_fit, 2 * math.pi * f_grid, segments)
+    Y_grid = on_grid(y_model, p_fit, 2 * math.pi * f_grid, segments)
     SRF1_model = find_srf(f_grid, Y_grid[:, 0, 0])
     SRF2_model = find_srf(f_grid, Y_grid[:, 1, 1])
     SRFdiff_model = find_srf(f_grid, y_diff(Y_grid))
@@ -1022,7 +1050,7 @@ def run_two_port(sub_full):
     coil_node = lambda k: 'p1' if k == 0 else 'p2' if k == segments else f'c{k}'
     netlist = [
         '* WIDEBAND RFIC INDUCTOR MODEL WITH SUBSTRATE NETWORK',
-        f'* Created using inductor_fit.py from {os.path.basename(args.snp)}',
+        f'* Created using inductor_fit.py {__version__} from {os.path.basename(args.snp)}',
         f'* Fit band {f_fit[0]/1e9:.3f} to {f_fit[-1]/1e9:.3f} GHz, {segments} coil segment(s)',
         '* Total element values:',
     ] + [f'*   {name} = {fit[name]:.6g}' for name in active_names] + [
@@ -1070,7 +1098,7 @@ def run_two_port(sub_full):
     model_filename = base_filename + '_model.s2p'
     s_model_full = rf.network.y2s(y_model(p_fit, 2 * math.pi * sub_full.f, segments), z0)
     with open(model_filename, 'w', encoding='utf-8') as snp_file:
-        snp_file.write(f'! Inductor model fitted by inductor_fit.py from {os.path.basename(args.snp)}\n')
+        snp_file.write(f'! Inductor model fitted by inductor_fit.py {__version__} from {os.path.basename(args.snp)}\n')
         snp_file.write(f'#   Hz   S  RI   R   {z0:g}\n')
         for fi, s in zip(sub_full.f, s_model_full):
             values = [s[0, 0], s[1, 0], s[0, 1], s[1, 1]]  # Touchstone 2-port order: S11 S21 S12 S22
@@ -1130,36 +1158,50 @@ def run_two_port(sub_full):
 
 # ======================== center-tapped inductor (3-port) ========================
 
+def center_tap_hint(Y):
+    # Port (0-based) that the low frequency Y matrix (3x3) puts in the middle of the coil. With the
+    # other two ports grounded, current from a coil end mostly leaves through the nearby center tap,
+    # so the two coil ends share the weakest transfer admittance (adopted from snp2le PR #14).
+    pairs = {2: abs(Y[0, 1]), 1: abs(Y[0, 2]), 0: abs(Y[1, 2])}  # key: the third port
+    return min(pairs, key=pairs.get)
+
 def run_center_tap(net_full):
     assert args.substrate in ('auto', 'symmetric', 'asymmetric'), \
         'center-tapped inductor model has no substrate coupling: use --substrate symmetric or asymmetric'
     z0 = net_full.z0[0, 0].real
     num_skin_sections = 1 if args.basic else 2
 
-    # internal port order p1, p2, ct
-    port_order = [i for i in range(3) if i != args.ct_port - 1] + [args.ct_port - 1]
+    # All three ports must be connected to the coil: at low frequency each port sees the coil
+    # (small resistance) when the other ports are grounded. A port that is open or only
+    # capacitively coupled (e.g. center tap port not touching the metal in the EM setup) has a
+    # tiny, capacitive input admittance. Checked in the file's port order, before the center tap
+    # is detected.
+    sub_file = net_full[net_full.f > 0] if net_full.frequency.start == 0 else net_full
+    f_lf = sub_file.f[0]
+    Y_lf = sub_file.y[0]
+    y_lf = np.abs(np.diagonal(Y_lf))
+    for i in np.where((y_lf < 1e-3 * y_lf.max()) | (np.diagonal(Y_lf).imag > 0))[0]:
+        c_ff = Y_lf[i, i].imag / (2 * math.pi * f_lf) * 1e15
+        raise SystemExit(f'ERROR: port {i+1} is not connected to the coil: at {f_lf/1e9:.3g} GHz '
+                         f'its input admittance with the other ports grounded is {abs(Y_lf[i, i]):.3g} S, '
+                         f'capacitive ({c_ff:.3g} fF), |S{i+1}{i+1}| = {abs(sub_file.s[0, i, i]):.4f}. '
+                         f'Check the port definition in the EM setup.')
+
+    # internal port order p1, p2, ct; center tap from --ct-port or detected from the data
+    ct_detected = center_tap_hint(Y_lf)
+    ct = ct_detected if args.ct_port is None else args.ct_port - 1
+    port_order = [i for i in range(3) if i != ct] + [ct]
     net_full = rf.Network(frequency=net_full.frequency, s=net_full.s[:, port_order][:, :, port_order], z0=z0)
     sub = net_full[net_full.f > 0] if net_full.frequency.start == 0 else net_full
     append_log(f'Center-tapped inductor: port {port_order[0]+1} = p1, port {port_order[1]+1} = p2, '
-               f'port {port_order[2]+1} = center tap')
+               f'port {port_order[2]+1} = center tap ' + ('(detected)' if args.ct_port is None else '(--ct-port)'))
+    if ct != ct_detected:
+        append_log(f'NOTE: port {ct_detected+1} looks like the center tap in the data, the fit uses port {ct+1} '
+                   f'as set by --ct-port')
 
     f = sub.f
     omega = 2 * math.pi * f
     Ymeas = sub.y
-
-    # All three ports must be connected to the coil: at low frequency each port sees the coil
-    # (small resistance) when the other ports are grounded. A port that is open or only
-    # capacitively coupled (e.g. center tap port not touching the metal in the EM setup) has a
-    # tiny, capacitive input admittance.
-    y_lf = np.abs(np.diagonal(Ymeas[0]))
-    for i in np.where((y_lf < 1e-3 * y_lf.max()) | (np.diagonal(Ymeas[0]).imag > 0))[0]:
-        name = ('p1', 'p2', 'center tap')[i]
-        c_ff = Ymeas[0, i, i].imag / omega[0] * 1e15
-        raise SystemExit(f'ERROR: port {port_order[i]+1} ({name}) is not connected to the coil: at {f[0]/1e9:.3g} GHz '
-                         f'its input admittance with the other ports grounded is {abs(Ymeas[0, i, i]):.3g} S, '
-                         f'capacitive ({c_ff:.3g} fF), |S{port_order[i]+1}{port_order[i]+1}| = {abs(sub.s[0, i, i]):.4f}. '
-                         f'Check the port definition in the EM setup' +
-                         (', or use --ct-port to name the center tap port' if i < 2 else '') + '.')
     meas = ct_quantities(Ymeas, omega)
 
     # ---- self resonances of the input data and fit band ----
@@ -1276,7 +1318,7 @@ def run_center_tap(net_full):
 
     model = ct_quantities(y_model_ct(p_fit, omega, segments), omega)
     f_grid = np.linspace(f[0], 1.5 * f[-1], 20000)
-    grid = ct_quantities(y_model_ct(p_fit, 2 * math.pi * f_grid, segments), 2 * math.pi * f_grid)
+    grid = ct_quantities(on_grid(y_model_ct, p_fit, 2 * math.pi * f_grid, segments), 2 * math.pi * f_grid)
     SRF_model = {key: find_srf(f_grid, grid[yk]) for key, yk in
                  (('dd_gnd', 'Ydd_gnd'), ('dd_open', 'Ydd_open'), ('cm', 'Y33'), ('11', 'Y11'), ('22', 'Y22'))}
     below_srf = {key: f <= (srf if srf is not None else f[-1]) for key, srf in SRF_meas.items()}
@@ -1374,7 +1416,7 @@ def run_center_tap(net_full):
     coil_node = lambda k: 'p1' if k == 0 else 'p2' if k == 2 * n else 'm' if k == n else f'c{k}'
     netlist = [
         '* WIDEBAND RFIC CENTER-TAPPED INDUCTOR MODEL WITH SUBSTRATE NETWORK',
-        f'* Created using inductor_fit.py from {os.path.basename(args.snp)}',
+        f'* Created using inductor_fit.py {__version__} from {os.path.basename(args.snp)}',
         f'* Fit band {f_fit[0]/1e9:.3f} to {f_fit[-1]/1e9:.3f} GHz, {n} coil segment(s) per half coil',
         '* k is the effective coupling including the center tap lead inductance',
         '* Total element values:',
@@ -1428,7 +1470,7 @@ def run_center_tap(net_full):
     inverse_order = np.argsort(port_order)
     s_full = rf.network.y2s(y_model_ct(p_fit, 2 * math.pi * net_full.f, n), z0)[:, inverse_order][:, :, inverse_order]
     model_network = rf.Network(frequency=net_full.frequency, s=s_full, z0=z0,
-                               comments=f'Center-tapped inductor model fitted by inductor_fit.py from {os.path.basename(args.snp)}')
+                               comments=f'Center-tapped inductor model fitted by inductor_fit.py {__version__} from {os.path.basename(args.snp)}')
     # full filename with extension: skrf only adds the extension if the name has none, and file
     # names like 'inductor_do82.29' already look like they have one
     model_network.write_touchstone(base_filename + '_model.s3p', form='ri')
@@ -1487,6 +1529,7 @@ def run_center_tap(net_full):
 
 parser = argparse.ArgumentParser(description='Wideband RFIC inductor model fit (series L/R/skin/Cs + Cox-Rsi||Csi substrate network); '
                                              '2-port data: inductor, 3-port data: center-tapped inductor')
+parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 parser.add_argument("snp",  help="S2P (inductor) or S3P (center-tapped inductor) input filename (Touchstone format)")
 parser.add_argument("--fmin", help="lower end of fit band in GHz (default: lowest non-DC data point)", type=float)
 parser.add_argument("--fmax", help=f"upper end of fit band in GHz (default: {SRF_FIT_FACTOR} x SRF of the input data)", type=float)
@@ -1495,7 +1538,7 @@ parser.add_argument("--segments", help=f"number of coil segments (per half coil 
 parser.add_argument("--substrate", help="substrate network (default: auto = simplest physical variant that fits); "
                                         "center-tapped inductors: symmetric or asymmetric",
                     choices=['auto'] + list(SUBSTRATE_VARIANTS), default='auto')
-parser.add_argument("--ct-port", help="center tap port number of S3P data (default: 3)", type=int, choices=(1, 2, 3), default=3)
+parser.add_argument("--ct-port", help="center tap port number of S3P data (default: detected from the data)", type=int, choices=(1, 2, 3))
 parser.add_argument("--basic", help="basic model with fixed topology: 1 coil segment, 1 skin section, no substrate coupling", action='store_true')
 parser.add_argument("--peak-q-weight", help=f"emphasize L and Q around the Q peak: weight factor up to 1+A at the Q peak "
                                             f"(default without value: A = {DEFAULT_PEAK_Q_WEIGHT:g})",
@@ -1518,7 +1561,7 @@ if args.basic:
 net = rf.Network(args.snp)
 assert net.nports in (2, 3), 'input data must be 2-port (inductor) or 3-port (center-tapped inductor) data'
 
-append_log('Wideband inductor model fit from S-parameter file')
+append_log(f'Wideband inductor model fit from S-parameter file (inductor_fit.py {__version__})')
 append_log(f'Input file: {args.snp}')
 append_log(f'S{net.nports}P frequency range is {net.frequency.start/1e9} to {net.frequency.stop/1e9} GHz')
 
