@@ -49,8 +49,10 @@
 # the data is symmetric, substrate coupling (2-port only) only if it is physically plausible and
 # needed. Option --basic always uses 1 segment, 1 skin section and no substrate coupling, for a
 # consistent topology across many fits, e.g. when generating data tables for machine learning.
+# Option --skin-sections sets the number of skin sections (default 2, with --basic 1), e.g. --basic
+# --skin-sections 2 for a fixed topology of coils whose loss rises over a wide band (wide traces).
 
-__version__ = "1.1"
+__version__ = "1.2"
 
 import skrf as rf
 import math
@@ -69,6 +71,9 @@ W_L = 0.5        # single-ended L11/L22 and differential L (relative error)
 W_Q = 0.5        # single-ended Q11/Q22 and differential Q (relative error)
 
 W_CORNER = 1.0   # penalty per decade of a skin section corner frequency below the fit band
+W_SKIN2 = 0.05   # weak penalty on the skin section with the higher corner frequency (its Lskin relative to the
+                 # total L): a skin section the data does not need goes towards the shorted state (Lskin -> 0)
+                 # instead of an arbitrary value traded off against Ls
 
 # Optional fit weighting (command line options):
 # --peak-q-weight: L and Q goals get the weight factor 1 + A*bump, where the bump rises smoothly
@@ -393,6 +398,19 @@ def corner_penalty(names, x, f_low):
     viol = [max(0.0, math.log10(2 * math.pi * f_low) - (x[i] - x[names.index('L' + name[1:])]))
             for i, name in enumerate(names) if name.startswith('Rskin')]
     return W_CORNER * np.array(viol)
+
+def skin2_penalty(names, x):
+    # weak penalty on the skin section with the higher corner frequency (section 2 after sorting), its Lskin relative
+    # to the total coil inductance (per half coil). With two skin sections, a section with its corner above the fit
+    # band acts as a series inductance (traded off against Ls) plus a resistance rising with f^2, so Ls and its Lskin
+    # are not unique. The penalty picks the smallest Lskin that still fits the data (the section vanishes, shorted,
+    # if the data does not need it). No effect with 1 skin section (section 2 is shorted).
+    pen = []
+    for h in ('', '_h1', '_h2'):
+        if 'Lskin2' + h in names:
+            Ls, R1, L1, R2, L2 = (10 ** x[names.index(n + h)] for n in ('Ls', 'Rskin1', 'Lskin1', 'Rskin2', 'Lskin2'))
+            pen.append(W_SKIN2 * (L2 if R2 / L2 > R1 / L1 else L1) / (Ls + L1 + L2))
+    return np.array(pen)
 
 def goal_residuals(model, meas_fit, goals):
     # complex quantities fit real and imaginary part
@@ -756,9 +774,9 @@ def run_two_port(sub_full):
     if args.basic:
         assert not SUBSTRATE_VARIANTS.get(args.substrate, (False, False))[1], '--basic model has no substrate coupling'
 
-    # In the basic model, skin section 2 is fixed at a negligible value (Lskin2 -> 0 shorts it)
-    # and excluded from fitting.
-    num_skin_sections = 1 if args.basic else 2
+    # With 1 skin section (default of the basic model), skin section 2 is fixed at a negligible value
+    # (Lskin2 -> 0 shorts it) and excluded from fitting.
+    num_skin_sections = args.skin_sections
 
     # Drop only a DC point, where the oxide capacitance makes the shunt branches singular.
     # Unlike the narrowband tools, all other low frequency data is kept, because it determines
@@ -853,7 +871,7 @@ def run_two_port(sub_full):
 
     def residual_fn_for(segments):
         return lambda x: np.concatenate([goal_residuals(model_quantities(10 ** x, omega_fit, segments), meas_fit, goals),
-                                         corner_penalty(PARAM_NAMES, x, f_fit[0])])
+                                         corner_penalty(PARAM_NAMES, x, f_fit[0]), skin2_penalty(PARAM_NAMES, x)])
 
     # bounds in decades around the seed values; the skin and coupling elements get a wider range,
     # Cox is well determined by the low frequency shunt capacitance and gets a narrow range
@@ -961,7 +979,8 @@ def run_two_port(sub_full):
 
     append_log('')
     if args.basic:
-        append_log('Basic model: 1 coil segment, 1 skin section, no substrate coupling (option --basic)')
+        append_log(f'Basic model: 1 coil segment, {num_skin_sections} skin section{"s" if num_skin_sections > 1 else ""}, '
+                   f'no substrate coupling (option --basic)')
     if len(segment_results) > 1:
         append_log(f'Fit cost for number of coil segments ({segment_variant} substrate network): ' +
                    ', '.join(f'{n}: {cost:.4g}' for n, (cost, _) in segment_results.items()))
@@ -1169,7 +1188,7 @@ def run_center_tap(net_full):
     assert args.substrate in ('auto', 'symmetric', 'asymmetric'), \
         'center-tapped inductor model has no substrate coupling: use --substrate symmetric or asymmetric'
     z0 = net_full.z0[0, 0].real
-    num_skin_sections = 1 if args.basic else 2
+    num_skin_sections = args.skin_sections
 
     # All three ports must be connected to the coil: at low frequency each port sees the coil
     # (small resistance) when the other ports are grounded. A port that is open or only
@@ -1268,7 +1287,7 @@ def run_center_tap(net_full):
     def residual_fn_for(segments):
         return lambda x: np.concatenate([goal_residuals(ct_quantities(y_model_ct(10 ** x, omega_fit, segments), omega_fit),
                                                         meas_fit, goals),
-                                         corner_penalty(CT_PARAM_NAMES, x, f_fit[0])])
+                                         corner_penalty(CT_PARAM_NAMES, x, f_fit[0]), skin2_penalty(CT_PARAM_NAMES, x)])
 
     span = np.array([2, 2, 3, 3, 3, 3] * 2 + [0, 3, 3] + [COX_SPAN, 3, 3] * 3)
     x_base_seed = np.log10(seed)
@@ -1325,7 +1344,8 @@ def run_center_tap(net_full):
 
     append_log('')
     if args.basic:
-        append_log('Basic model: 1 coil segment, 1 skin section per half coil (option --basic)')
+        append_log(f'Basic model: 1 coil segment, {num_skin_sections} skin section{"s" if num_skin_sections > 1 else ""} '
+                   f'per half coil (option --basic)')
     if len(segment_results) > 1:
         append_log('Fit cost for number of coil segments per half: ' +
                    ', '.join(f'{n}: {cost:.4g}' for n, (cost, _) in segment_results.items()))
@@ -1539,7 +1559,9 @@ parser.add_argument("--substrate", help="substrate network (default: auto = simp
                                         "center-tapped inductors: symmetric or asymmetric",
                     choices=['auto'] + list(SUBSTRATE_VARIANTS), default='auto')
 parser.add_argument("--ct-port", help="center tap port number of S3P data (default: detected from the data)", type=int, choices=(1, 2, 3))
-parser.add_argument("--basic", help="basic model with fixed topology: 1 coil segment, 1 skin section, no substrate coupling", action='store_true')
+parser.add_argument("--basic", help="basic model with fixed topology: 1 coil segment, 1 skin section (see --skin-sections), "
+                                    "no substrate coupling", action='store_true')
+parser.add_argument("--skin-sections", help="number of skin sections (default: 2, with --basic 1)", type=int, choices=(1, 2))
 parser.add_argument("--peak-q-weight", help=f"emphasize L and Q around the Q peak: weight factor up to 1+A at the Q peak "
                                             f"(default without value: A = {DEFAULT_PEAK_Q_WEIGHT:g})",
                     type=float, nargs='?', const=DEFAULT_PEAK_Q_WEIGHT, metavar='A')
@@ -1556,6 +1578,8 @@ assert args.shunt_accuracy is None or args.shunt_accuracy > 0, '--shunt-accuracy
 if args.basic:
     assert args.segments in (None, 1), '--basic model always uses 1 coil segment'
     args.segments = 1
+if args.skin_sections is None:
+    args.skin_sections = 1 if args.basic else 2
 
 # input data: 2-port inductor or 3-port center-tapped inductor
 net = rf.Network(args.snp)

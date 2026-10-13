@@ -68,6 +68,10 @@ so the model is always unique. Port symmetry is still taken from the data. This 
 topology for every fit, which is useful for example when generating data tables for machine
 learning.
 
+`--basic --skin-sections 2` keeps this fixed topology with a second skin section. Coils whose
+loss keeps rising over a wide band, for example single-turn inductors with wide traces fitted up
+to 100 GHz, need it: with one skin section their fitted Q flattens too early.
+
 ## Fit weighting options
 
 By default, the fit treats the whole band evenly. Two options shift the emphasis:
@@ -133,7 +137,7 @@ center-tapped inductor model:
   underpass in one half. Tying only the symmetric groups keeps the values physical.
 - **Coil segments:** chosen automatically (1–3 per half coil). The substrate network is then
   distributed along p1 → m → p2.
-- **`--basic`:** 1 segment and 1 skin section per half coil.
+- **`--basic`:** 1 segment and 1 skin section per half coil (2 with `--skin-sections 2`).
 
 **Why there is no center tap lead inductance:** a lead inductance `Lct` and the mutual
 inductance `M` cannot be separated from terminal data. With the center tap as reference, the
@@ -205,12 +209,13 @@ Regenerating the schematic image (`doc/draw_model.py`) also needs schemdraw.
 # Usage
 
 ```
-python inductor_fit.py <s2p or s3p file> [--basic] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin GHz] [--fmax GHz] [--peak-q-weight [A]] [--shunt-accuracy [K]] [--spectre] [--noplot]
+python inductor_fit.py <s2p or s3p file> [--basic] [--skin-sections N] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin GHz] [--fmax GHz] [--peak-q-weight [A]] [--shunt-accuracy [K]] [--spectre] [--noplot]
 ```
 
 | option | meaning |
 |---|---|
 | `--basic` | fixed basic topology: 1 coil segment, 1 skin section, no substrate coupling |
+| `--skin-sections N` | 1 or 2 skin sections (default: 2, with `--basic` 1) |
 | `--segments N` | use N coil segments (per half coil for S3P) instead of choosing automatically from 1, 2, 3 |
 | `--substrate VARIANT` | `symmetric`, `asymmetric`, `symmetric+coupling` or `asymmetric+coupling` instead of `auto` (S3P: `symmetric` or `asymmetric` only) |
 | `--ct-port N` | S3P only: port number of the center tap (default: detected from the data) |
@@ -245,7 +250,7 @@ Substrate network: symmetric (simplest physical variant with cost within 1.1 x b
 Fitted model element values, totals over all segments (seed values in brackets)
 Series branch
   Rs     :        1.542 Ohm   (1.548 Ohm)
-  Ls     :        1.567 nH   (1.604 nH)
+  Ls     :        1.568 nH   (1.604 nH)
   ...
 Shunt branch port 1
   Cox1   :         59.5 fF   (57.79 fF)
@@ -256,14 +261,14 @@ Shunt branch port 2 (symmetric: same as port 1)
                                       data     model
   SRF port 1 (port 2 shorted) [GHz]:    20.910    20.888
   SRF port 2 (port 1 shorted) [GHz]:    20.852    20.888
-  SRF differential            [GHz]:    23.239    23.442
+  SRF differential            [GHz]:    23.239    23.441
   Peak Q11                         :     18.57     18.49
   Frequency of peak Q11       [GHz]:     6.900     7.125
   Peak Q differential              :     22.51     22.41
   Frequency of peak Q diff    [GHz]:     9.075     8.925
 ...
-RMS relative error over fit band [%]: Y11 0.75, Y22 0.75, Y21 0.77, S21 0.76
-RMS relative error below 0.8 x SRF [%]   : L11 1.05, Q11 0.50, L22 0.65, Q22 1.03
+RMS relative error over fit band [%]: Y11 0.76, Y22 0.76, Y21 0.77, S21 0.76
+RMS relative error below 0.8 x SRF [%]   : L11 1.05, Q11 0.50, L22 0.66, Q22 1.02
 ```
 
 The plots compare the input data (simulated or measured S-parameters) and the model. The gray area marks data that was not used for
@@ -305,20 +310,20 @@ Symmetry from the data (RMS difference, threshold 5 %):
   substrate at p1/p2    :   5.91 % -> asymmetric
 ...
 Derived values
-  Half coil inductance at DC (Ls + Lskin)     [nH] : 0.1725, 0.1725
-  Mutual inductance M = k*sqrt(Ls_h1*Ls_h2)   [nH] : 0.06251
-  Differential inductance at DC (L1+L2+2M)   [nH] : 0.47
-  Differential resistance at DC (Rs1+Rs2)   [Ohm] : 1.72
+  Half coil inductance at DC (Ls + Lskin)     [nH] : 0.1729, 0.1729
+  Mutual inductance M = k*sqrt(Ls_h1*Ls_h2)   [nH] : 0.06248
+  Differential inductance at DC (L1+L2+2M)   [nH] : 0.4708
+  Differential resistance at DC (Rs1+Rs2)   [Ohm] : 1.717
 
                                                                    data     model
-  Peak Q differential, center tap AC grounded               :     18.76     18.18   at 37.500 / 35.250 GHz
-  Peak Q common mode at center tap                          :     10.26     10.28   at 60.000 / 60.000 GHz
-  Peak Q port 1 (p2, ct grounded)                           :     11.05     11.18   at 51.750 / 45.750 GHz
+  Peak Q differential, center tap AC grounded               :     18.76     18.14   at 37.500 / 34.500 GHz
+  Peak Q common mode at center tap                          :     10.26     10.37   at 60.000 / 60.000 GHz
+  Peak Q port 1 (p2, ct grounded)                           :     11.05     11.12   at 51.750 / 47.250 GHz
 ...
-RMS relative error over fit band [%]: Y11 2.51, Y22 3.44, Y33 2.55, Y21 3.74, Y31 2.14, S21 1.93, S31 0.36
+RMS relative error over fit band [%]: Y11 2.33, Y22 3.44, Y33 2.43, Y21 3.45, Y31 1.95, S21 1.95, S31 0.41
 ```
 The two half coils have the same inductance but different resistance. The model therefore ties
-only the inductances of the halves (effective k = 0.42), and fits the resistances separately.
+only the inductances of the halves (effective k = 0.41), and fits the resistances separately.
 
 <img src="./doc/inductor3_ct_fig1.png" width="700">
 
@@ -344,6 +349,12 @@ only the inductances of the halves (effective k = 0.42), and fits the resistance
 
 `python inductor_fit.py --version` prints the version, the log and the model file headers name it.
 
+- **1.2**: option `--skin-sections` sets the number of skin sections, also for the basic model
+  (`--basic --skin-sections 2`). With two skin sections, a weak penalty on the section with the
+  higher corner frequency makes it as small as the data allows: a section the data does not need
+  no longer takes an arbitrary value traded off against Ls (e.g. Rskin2 = 1.6 kOhm with a corner
+  far above the band). Fits change slightly (fit cost within 1 %); the basic model with one skin
+  section is unchanged.
 - **1.1**: the center tap of S3P data is detected from the data (`--ct-port` overrides); a lossy
   coil whose skin section seed exceeds its bound no longer aborts the fit; 2-port data that is
   not inductive at the low end of the fit band (e.g. a capacitor) is refused with a reason
