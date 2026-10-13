@@ -71,9 +71,9 @@ W_L = 0.5        # single-ended L11/L22 and differential L (relative error)
 W_Q = 0.5        # single-ended Q11/Q22 and differential Q (relative error)
 
 W_CORNER = 1.0   # penalty per decade of a skin section corner frequency below the fit band
-W_SKIN2 = 0.05   # weak penalty on the skin section with the higher corner frequency (its Lskin relative to the
-                 # total L): a skin section the data does not need goes towards the shorted state (Lskin -> 0)
-                 # instead of an arbitrary value traded off against Ls
+W_SKIN = 0.05    # weak penalty on every skin section (its Lskin relative to the total L): a skin section the data
+                 # does not need goes towards the shorted state (Lskin -> 0) instead of an arbitrary value traded
+                 # off against Ls
 
 # Optional fit weighting (command line options):
 # --peak-q-weight: L and Q goals get the weight factor 1 + A*bump, where the bump rises smoothly
@@ -399,17 +399,19 @@ def corner_penalty(names, x, f_low):
             for i, name in enumerate(names) if name.startswith('Rskin')]
     return W_CORNER * np.array(viol)
 
-def skin2_penalty(names, x):
-    # weak penalty on the skin section with the higher corner frequency (section 2 after sorting), its Lskin relative
-    # to the total coil inductance (per half coil). With two skin sections, a section with its corner above the fit
-    # band acts as a series inductance (traded off against Ls) plus a resistance rising with f^2, so Ls and its Lskin
-    # are not unique. The penalty picks the smallest Lskin that still fits the data (the section vanishes, shorted,
-    # if the data does not need it). No effect with 1 skin section (section 2 is shorted).
+def skin_penalty(names, x):
+    # weak penalty on every skin section, its Lskin relative to the total coil inductance (per half coil). A skin
+    # section with its corner above the fit band acts as a series inductance (traded off against Ls) plus a
+    # resistance rising with f^2, and a section with a very low Rskin only adds inductance at low frequency: in both
+    # cases Ls and Lskin are not unique, and the fit would return arbitrary values that differ between similar coils.
+    # The penalty picks the smallest Lskin that still fits the data: a section the data does not need vanishes
+    # (shorted), and one that only models the f^2 loss gets its corner near the top of the fit band.
+    # (A shorted section 2, Lskin2 = 1e-30 H, adds nothing.)
     pen = []
     for h in ('', '_h1', '_h2'):
-        if 'Lskin2' + h in names:
-            Ls, R1, L1, R2, L2 = (10 ** x[names.index(n + h)] for n in ('Ls', 'Rskin1', 'Lskin1', 'Rskin2', 'Lskin2'))
-            pen.append(W_SKIN2 * (L2 if R2 / L2 > R1 / L1 else L1) / (Ls + L1 + L2))
+        if 'Lskin1' + h in names:
+            Ls, L1, L2 = (10 ** x[names.index(n + h)] for n in ('Ls', 'Lskin1', 'Lskin2'))
+            pen += [W_SKIN * L1 / (Ls + L1 + L2), W_SKIN * L2 / (Ls + L1 + L2)]
     return np.array(pen)
 
 def goal_residuals(model, meas_fit, goals):
@@ -871,7 +873,7 @@ def run_two_port(sub_full):
 
     def residual_fn_for(segments):
         return lambda x: np.concatenate([goal_residuals(model_quantities(10 ** x, omega_fit, segments), meas_fit, goals),
-                                         corner_penalty(PARAM_NAMES, x, f_fit[0]), skin2_penalty(PARAM_NAMES, x)])
+                                         corner_penalty(PARAM_NAMES, x, f_fit[0]), skin_penalty(PARAM_NAMES, x)])
 
     # bounds in decades around the seed values; the skin and coupling elements get a wider range,
     # Cox is well determined by the low frequency shunt capacitance and gets a narrow range
@@ -1287,7 +1289,7 @@ def run_center_tap(net_full):
     def residual_fn_for(segments):
         return lambda x: np.concatenate([goal_residuals(ct_quantities(y_model_ct(10 ** x, omega_fit, segments), omega_fit),
                                                         meas_fit, goals),
-                                         corner_penalty(CT_PARAM_NAMES, x, f_fit[0]), skin2_penalty(CT_PARAM_NAMES, x)])
+                                         corner_penalty(CT_PARAM_NAMES, x, f_fit[0]), skin_penalty(CT_PARAM_NAMES, x)])
 
     span = np.array([2, 2, 3, 3, 3, 3] * 2 + [0, 3, 3] + [COX_SPAN, 3, 3] * 3)
     x_base_seed = np.log10(seed)

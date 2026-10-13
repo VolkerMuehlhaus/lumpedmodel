@@ -267,7 +267,7 @@ Shunt branch port 2 (symmetric: same as port 1)
   Peak Q differential              :     22.51     22.41
   Frequency of peak Q diff    [GHz]:     9.075     8.925
 ...
-RMS relative error over fit band [%]: Y11 0.76, Y22 0.76, Y21 0.77, S21 0.76
+RMS relative error over fit band [%]: Y11 0.75, Y22 0.75, Y21 0.77, S21 0.76
 RMS relative error below 0.8 x SRF [%]   : L11 1.05, Q11 0.50, L22 0.66, Q22 1.02
 ```
 
@@ -310,17 +310,17 @@ Symmetry from the data (RMS difference, threshold 5 %):
   substrate at p1/p2    :   5.91 % -> asymmetric
 ...
 Derived values
-  Half coil inductance at DC (Ls + Lskin)     [nH] : 0.1729, 0.1729
-  Mutual inductance M = k*sqrt(Ls_h1*Ls_h2)   [nH] : 0.06248
-  Differential inductance at DC (L1+L2+2M)   [nH] : 0.4708
-  Differential resistance at DC (Rs1+Rs2)   [Ohm] : 1.717
+  Half coil inductance at DC (Ls + Lskin)     [nH] : 0.1726, 0.1726
+  Mutual inductance M = k*sqrt(Ls_h1*Ls_h2)   [nH] : 0.06249
+  Differential inductance at DC (L1+L2+2M)   [nH] : 0.4703
+  Differential resistance at DC (Rs1+Rs2)   [Ohm] : 1.719
 
                                                                    data     model
-  Peak Q differential, center tap AC grounded               :     18.76     18.14   at 37.500 / 34.500 GHz
-  Peak Q common mode at center tap                          :     10.26     10.37   at 60.000 / 60.000 GHz
-  Peak Q port 1 (p2, ct grounded)                           :     11.05     11.12   at 51.750 / 47.250 GHz
+  Peak Q differential, center tap AC grounded               :     18.76     18.16   at 37.500 / 35.250 GHz
+  Peak Q common mode at center tap                          :     10.26     10.32   at 60.000 / 60.000 GHz
+  Peak Q port 1 (p2, ct grounded)                           :     11.05     11.15   at 51.750 / 46.500 GHz
 ...
-RMS relative error over fit band [%]: Y11 2.33, Y22 3.44, Y33 2.43, Y21 3.45, Y31 1.95, S21 1.95, S31 0.41
+RMS relative error over fit band [%]: Y11 2.45, Y22 3.46, Y33 2.51, Y21 3.62, Y31 2.08, S21 1.94, S31 0.38
 ```
 The two half coils have the same inductance but different resistance. The model therefore ties
 only the inductances of the halves (effective k = 0.41), and fits the resistances separately.
@@ -350,11 +350,11 @@ only the inductances of the halves (effective k = 0.41), and fits the resistance
 `python inductor_fit.py --version` prints the version, the log and the model file headers name it.
 
 - **1.2**: option `--skin-sections` sets the number of skin sections, also for the basic model
-  (`--basic --skin-sections 2`). With two skin sections, a weak penalty on the section with the
-  higher corner frequency makes it as small as the data allows: a section the data does not need
-  no longer takes an arbitrary value traded off against Ls (e.g. Rskin2 = 1.6 kOhm with a corner
-  far above the band). Fits change slightly (fit cost within 1 %); the basic model with one skin
-  section is unchanged.
+  (`--basic --skin-sections 2`). A weak penalty on every skin section (its Lskin relative to the
+  total inductance) makes it as small as the data allows: a section the data does not need no
+  longer takes an arbitrary value traded off against Ls (e.g. Rskin2 = 1.6 kOhm with a corner far
+  above the band, or Lskin up to 6 x Ls in basic fits), so similar coils get consistent Ls and
+  Lskin values. Fits change slightly (fit cost within 3 %, fit errors unchanged).
 - **1.1**: the center tap of S3P data is detected from the data (`--ct-port` overrides); a lossy
   coil whose skin section seed exceeds its bound no longer aborts the fit; 2-port data that is
   not inductive at the low end of the fit band (e.g. a capacitor) is refused with a reason

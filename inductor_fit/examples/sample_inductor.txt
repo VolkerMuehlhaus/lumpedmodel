@@ -15,10 +15,10 @@ Fitted model element values, totals over all segments (seed values in brackets)
 Series branch
   Rs     :        1.542 Ohm   (1.548 Ohm)
   Ls     :        1.568 nH   (1.604 nH)
-  Rskin1 :       0.9222 Ohm   (1.672 Ohm)
-  Lskin1 :      0.04779 nH   (0.05504 nH)
-  Rskin2 :        10.18 Ohm   (0.1113 Ohm)
-  Lskin2 :      0.05125 nH   (0.01152 nH)
+  Rskin1 :       0.9216 Ohm   (1.672 Ohm)
+  Lskin1 :      0.04774 nH   (0.05504 nH)
+  Rskin2 :        10.15 Ohm   (0.1113 Ohm)
+  Lskin2 :       0.0512 nH   (0.01152 nH)
   Cs     :        25.25 fF   (21.62 fF)
 Shunt branch port 1
   Cox1   :         59.5 fF   (57.79 fF)
@@ -31,9 +31,9 @@ Shunt branch port 2 (symmetric: same as port 1)
 
 Derived values
   L at DC (Ls + Lskin1 + Lskin2)          [nH] : 1.667
-  R at high frequency (Rs+Rskin1+Rskin2) [Ohm]: 12.64
-  Skin section 1 corner frequency        [GHz]: 3.071
-  Skin section 2 corner frequency        [GHz]: 31.6
+  R at high frequency (Rs+Rskin1+Rskin2) [Ohm]: 12.61
+  Skin section 1 corner frequency        [GHz]: 3.072
+  Skin section 2 corner frequency        [GHz]: 31.54
 
                                       data     model
   SRF port 1 (port 2 shorted) [GHz]:    20.910    20.888
@@ -44,13 +44,13 @@ Derived values
   Peak Q differential              :     22.51     22.41
   Frequency of peak Q diff    [GHz]:     9.075     8.925
   L11 at 0.075 GHz         [nH] :    1.6767    1.6667
-  R11 at 0.075 GHz        [Ohm] :    1.5573    1.5427
+  R11 at 0.075 GHz        [Ohm] :    1.5573    1.5429
 
 Fit cost (weighted error function): 0.01288
-RMS relative error over fit band [%]: Y11 0.76, Y22 0.76, Y21 0.77, S21 0.76
+RMS relative error over fit band [%]: Y11 0.75, Y22 0.75, Y21 0.77, S21 0.76
 RMS relative error below 0.8 x SRF [%]   : L11 1.05, Q11 0.50, L22 0.66, Q22 1.02
 
-NOTE: skin section 2 corner frequency (31.6 GHz) is above the fit band - in band it acts as an additional series inductance Lskin2
+NOTE: skin section 2 corner frequency (31.5 GHz) is above the fit band - in band it acts as an additional series inductance Lskin2
 Data above 25.022 GHz was not used for fitting (beyond 1.2 x SRF)
 
 SPICE netlist written to sample_inductor_model.sp
