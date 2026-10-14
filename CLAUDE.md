@@ -37,12 +37,13 @@ Each tool is invoked directly with argparse-style positional arguments; run with
 - `rlgc_from_s2p/rlgc_from_s2p.py <s2p> <f_ghz> <l_um> <z0_ohm>` — per-meter RLGC transmission
   line parameters from a 2-port line measurement; physical length and port impedance must be
   supplied explicitly.
-- `inductor_fit/inductor_fit.py <s2p|s3p> [--basic] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin/--fmax GHz] [--peak-q-weight [A]] [--shunt-accuracy [K]] [--spectre] [--noplot]` —
+- `inductor_fit/inductor_fit.py <s2p|s3p> [--basic] [--skin-sections N] [--segments N] [--substrate VARIANT] [--ct-port N] [--fmin/--fmax GHz] [--peak-q-weight [A]] [--shunt-accuracy [K]] [--spectre] [--noplot]` —
   fully automatic wideband RFIC inductor model with physical substrate network (series Rs/Ls +
   two Rskin||Lskin sections + Cs, per-port Cox-(Rsi||Csi), optional Rsub12||Csub12 coupling),
   global least-squares fit up to 1.2x SRF. Auto-selects 1-3 coil segments for distributed
   behaviour and the simplest physically meaningful substrate variant; `--basic` fixes 1 segment /
-  1 skin section / no coupling (consistent, unique topology, e.g. for ML data tables).
+  1 skin section / no coupling (consistent, unique topology, e.g. for ML data tables); `--skin-sections 2`
+  adds the second skin section to it (or `1` removes it from the full model).
   3-port input switches to the center-tapped inductor model (two coupled half coils, effective
   k, Rct lead, substrate at p1/p2/ct; center tap detected from the data, `--ct-port` overrides).
   Writes `.txt`, `<base>_model.sp` (SPICE subckt) and `<base>_model.s2p`/`.s3p`; needs `scipy`.
