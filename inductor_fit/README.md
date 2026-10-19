@@ -349,6 +349,11 @@ only the inductances of the halves (effective k = 0.41), and fits the resistance
 
 `python inductor_fit.py --version` prints the version, the log and the model file headers name it.
 
+- **1.2.1**: center-tapped fit with skin elements of the two half coils tied (e.g. inductances
+  tied, resistances free): half coil 2 keeps the skin section order of half coil 1. Sorting each
+  half on its own could pair section 1 of one half with section 2 of the other, so the reported
+  values broke the tie (the circuit itself was unaffected). Reported by the
+  [snp2le](https://github.com/iic-jku/snp2le) port (PR #30); not seen on the bundled coil.
 - **1.2**: option `--skin-sections` sets the number of skin sections, also for the basic model
   (`--basic --skin-sections 2`). A weak penalty on every skin section (its Lskin relative to the
   total inductance) makes it as small as the data allows: a section the data does not need no
