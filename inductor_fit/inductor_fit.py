@@ -52,7 +52,7 @@
 # Option --skin-sections sets the number of skin sections (default 2, with --basic 1), e.g. --basic
 # --skin-sections 2 for a fixed topology of coils whose loss rises over a wide band (wide traces).
 
-__version__ = "1.2"
+__version__ = "1.2.1"
 
 import skrf as rf
 import math
@@ -495,14 +495,17 @@ def fit_segments(variant, residual_fn_for, segment_choices):
     segments = min(n for n, (cost, _) in results.items() if cost <= SEGMENT_COST_TOLERANCE * min_cost)
     return results, segments
 
-def sort_skin_sections(names, arrays, suffix=''):
+def sort_skin_sections(names, arrays, suffix='', swap=None):
     # sort the two skin sections by corner frequency (section 1 = lower corner), in all arrays
-    # (fit result, bounds, seeds) together
+    # (fit result, bounds, seeds) together; swap = True/False forces the order instead (returns the swap applied)
     i1, i2 = names.index('Rskin1' + suffix), names.index('Rskin2' + suffix)
     corner = lambda x, i: x[i] - x[i + 1]  # log10(Rskin/Lskin), monotonic in corner frequency
-    if corner(arrays[0], i1) > corner(arrays[0], i2):
+    if swap is None:
+        swap = corner(arrays[0], i1) > corner(arrays[0], i2)
+    if swap:
         for arr in arrays:
             arr[[i1, i1 + 1, i2, i2 + 1]] = arr[[i2, i2 + 1, i1, i1 + 1]]
+    return swap
 
 
 # ---------------- analytic seed values ----------------
@@ -1328,8 +1331,11 @@ def run_center_tap(net_full):
     x_seed = variant['x_seed'].copy()
     active_names = [name for name in CT_PARAM_NAMES if name not in variant['fixed']]
     if num_skin_sections == 2:
-        for h in ('_h1', '_h2'):
-            sort_skin_sections(CT_PARAM_NAMES, (x_fit, lower, upper, x_seed), h)
+        # with skin elements of the two halves tied (e.g. inductances tied, resistances free), half 2 keeps the
+        # order of half 1: sorting it on its own could pair section 1 of one half with section 2 of the other
+        swap = sort_skin_sections(CT_PARAM_NAMES, (x_fit, lower, upper, x_seed), '_h1')
+        skin_tied = any(n + '_h2' in ties for n in ('Rskin1', 'Lskin1', 'Rskin2', 'Lskin2'))
+        sort_skin_sections(CT_PARAM_NAMES, (x_fit, lower, upper, x_seed), '_h2', swap if skin_tied else None)
 
     p_fit = 10 ** x_fit
     fit = dict(zip(CT_PARAM_NAMES, p_fit))
