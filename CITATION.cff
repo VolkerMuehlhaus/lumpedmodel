@@ -1,0 +1,51 @@
+cff-version: 1.2.0
+message: "If you use lumpedmodel in a publication, please cite it as below, together with scikit-rf."
+type: software
+title: "lumpedmodel: Create lumped models from S-parameters"
+abstract: "Python tools that convert S-parameters from RFIC EM simulation or measurement into lumped models for circuit simulation: inductors (narrowband pi model and wideband fit with substrate network, also center-tapped), MIM capacitors, transmission lines (RLGC) and n-port vector fitting."
+authors:
+  - family-names: "Mühlhaus"
+    given-names: "Volker"
+license: GPL-3.0-or-later
+repository-code: "https://github.com/VolkerMuehlhaus/lumpedmodel"
+keywords:
+  - RFIC
+  - S-parameters
+  - lumped model
+  - equivalent circuit
+  - inductor model
+  - vector fitting
+  - SPICE
+# version is the GitHub release tag (each tool also has its own __version__).
+# Update both lines with every new release.
+version: "1.1"
+date-released: 2026-10-12
+references:
+  # As given in scikit-rf's own CITATION.cff
+  - type: software
+    title: "scikit-rf: An Open Source Python Package for Microwave Network Creation, Analysis, and Calibration"
+    authors:
+      - family-names: "Arsenovic"
+        given-names: "Alexander"
+      - family-names: "Hillairet"
+        given-names: "Julien"
+      - family-names: "Anderson"
+        given-names: "Jackson"
+      - family-names: "Forstén"
+        given-names: "Henrik"
+      - family-names: "Rieß"
+        given-names: "Vincent"
+      - family-names: "Eller"
+        given-names: "Michael"
+      - family-names: "Sauber"
+        given-names: "Noah"
+      - family-names: "Weikle"
+        given-names: "Robert"
+      - family-names: "Barnhart"
+        given-names: "William"
+      - family-names: "Forstmayr"
+        given-names: "Franz"
+    license: MIT
+    repository-code: "https://github.com/scikit-rf/scikit-rf"
+    doi: "10.1109/MMM.2021.3117139"
+    date-released: 2021-12-01
