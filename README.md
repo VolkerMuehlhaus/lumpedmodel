@@ -55,6 +55,12 @@ pip install scikit-rf numpy scipy matplotlib packaging
 Tested with Python 3.13, scikit-rf 1.11.0, numpy 2.3.3, scipy 1.16.2, matplotlib 3.10.6.
 vector_fit uses a different fit setting for scikit-rf older than 1.11.0.
 
+## How to cite
+
+If you use lumpedmodel in a publication, please cite it. The **Cite this repository** button on the GitHub repository page gives APA and BibTeX entries, generated from [CITATION.cff](./CITATION.cff).
+
+Please also cite [scikit-rf](https://scikit-rf.org), which all tools build on. Its reference is listed in CITATION.cff.
+
 ## License
 
 Copyright (C) 2026 Volker Muehlhaus <volker@muehlhaus.com>
